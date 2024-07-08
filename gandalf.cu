@@ -92,7 +92,13 @@ cuComplex *padded;
 cuComplex *dx, *dy;
 float *fdxR, *fdyR, *gdxR, *gdyR;
 
+// nb changed 2024/07/08
+cuComplex *dsym;
+
 cufftHandle plan_C2R, plan_R2C, plan2d_C2R;
+
+// nb changed 2024/07/03
+FFTXProblem prob;
 
 // NetCDF info
 
@@ -818,3 +824,4 @@ void finit(cuComplex *f, cuComplex *g)
     }
 
 }
+
