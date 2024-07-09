@@ -825,3 +825,4 @@ void finit(cuComplex *f, cuComplex *g)
     }
 
 }
+

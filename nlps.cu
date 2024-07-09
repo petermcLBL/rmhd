@@ -89,3 +89,4 @@ void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
     mask <<<dG,dB>>> (result);
 }
 
+
