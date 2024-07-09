@@ -54,7 +54,7 @@ CUDA: CCFLAGS=-x cu -std=c++14
 CUDA: PRESETS=-DFFTX_CUDA
 # To get helper_cuda.h
 CUDA: CC_INCLUDE=-I$(CUDATOOLKIT_HOME)/../../examples/OpenMP/SDK/include
-CUDA: CC_LINK=-L$(CUDATOOLKIT_HOME)/lib64 -lcudart
+CUDA: CC_LINK=-L$(CUDATOOLKIT_HOME)/lib64 -lcudart -lcuda -lnvrtc
 CUDA: FFTX_LIBRARIES=$(FFTX_MPI_LIBRARY) $(FFTX_GPU_LIBRARIES)
 # Targets to build.
 CUDA: gandalf

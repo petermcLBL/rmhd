@@ -1,16 +1,5 @@
 void fft_plan_create()
 {
-    // nb changed 2024/07/08
-    //https://spiral-software.github.io/fftx/apis.html#fftxproblem
-    
-    /*
-    Size of transform, as a std::vector<int> of length equal to the dimension, 
-    with the component in each coordinate direction representing the transform size in that direction. 
-    */
-    std::vector<int> zxySizes{Nz, Nx, Ny};
-    
-    prob.setSizes(zxySizes);
-
     if(cufftPlan3d(&plan_C2R, Nz, Nx, Ny, CUFFT_C2R) != CUFFT_SUCCESS) {
         printf("plan_C2R creation failed. Don't trust results. \n");
     };
@@ -27,7 +16,16 @@ void fft_plan_destroy()
 
 void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
 {
-    // nb changed 2024/07/03
+    // nb changed 2024/07/08
+    //https://spiral-software.github.io/fftx/apis.html#fftxproblem
+    
+    /*
+    Size of transform, as a std::vector<int> of length equal to the dimension, 
+    with the component in each coordinate direction representing the transform size in that direction. 
+    */
+    std::vector<int> zxySizes{Nz, Nx, Ny};
+    
+    c2r_prob.setSizes(zxySizes);
     /*
     Array of length 3 that contains the following.
     args[0]: pointer to output array.
@@ -46,17 +44,17 @@ void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
     if(cufftExecC2R(plan_C2R, dx, fdxR) != CUFFT_SUCCESS) printf("fdxR calculation failed. \n");
 */
     // type of transform = complex-to-real
-    prob.setName("imdprdft");
+    //c2r_prob.setName("imdprdft");
     
     // set i/o location, use f on dy
-    prob.setArgs(args_C2R_fy);
+    c2r_prob.setArgs(args_C2R_fy);
     // perform transform
-    prob.transform();
+    c2r_prob.transform();
     
     // set i/o location, use f on dx
-    prob.setArgs(args_C2R_fx);
+    c2r_prob.setArgs(args_C2R_fx);
     // perform transform
-    prob.transform();
+    c2r_prob.transform();
     
     GRADIENT (g, dx, dy);
 /*
@@ -64,14 +62,14 @@ void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
     if(cufftExecC2R(plan_C2R, dx, gdxR) != CUFFT_SUCCESS) printf("gdyR calculation failed.  \n");
 */
     // set i/o location, use g on dy
-    prob.setArgs(args_C2R_gy);
+    c2r_prob.setArgs(args_C2R_gy);
     // perform transform
-    prob.transform();
+    c2r_prob.transform();
     
     // set i/o location, use g on dx
-    prob.setArgs(args_C2R_gx);
+    c2r_prob.setArgs(args_C2R_gx);
     // perform transform
-    prob.transform();
+    c2r_prob.transform();
     
     // Reuse fdxR as result 
     bracket <<<dG,dB>>> (fdxR, fdxR, fdyR, gdxR, gdyR, 1.0);
@@ -79,11 +77,11 @@ void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
     if(cufftExecR2C(plan_R2C, fdxR, result) != CUFFT_SUCCESS) printf("R2C failed. \n");  
 */
     // type of transform = real-to-complex
-    prob.setName("mdprdft");
+    //r2c_prob.setName("mdprdft");
     // set i/o location, "reuse fdxR as result" sent to result
-    prob.setArgs(args_in_R2C);
+    r2c_prob.setArgs(args_in_R2C);
     // perform transform
-    prob.transform();
+    r2c_prob.transform();
     
     scale <<<dG,dB>>> (result,1.0f/((float) Nx*Ny*Nz));
 
