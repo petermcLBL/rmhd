@@ -98,7 +98,8 @@ cuComplex *dsym;
 cufftHandle plan_C2R, plan_R2C, plan2d_C2R;
 
 // nb changed 2024/07/03
-FFTXProblem prob;
+IMDPRDFTProblem c2r_prob("imdprdft");
+MDPRDFTProblem r2c_prob("mdprdft");
 
 // NetCDF info
 
