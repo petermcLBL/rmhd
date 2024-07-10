@@ -91,9 +91,10 @@ cuComplex *temp1, *temp2, *temp3;
 cuComplex *padded;
 cuComplex *dx, *dy;
 float *fdxR, *fdyR, *gdxR, *gdyR;
-
-// nb changed 2024/07/08
-cuComplex *dsym;
+// running both at same time
+cuComplex *temp1a, *temp2a, *temp3a;
+cuComplex *dxa, *dya;
+float *fdxRa, *fdyRa, *gdxRa, *gdyRa;
 
 cufftHandle plan_C2R, plan_R2C, plan2d_C2R;
 
@@ -158,6 +159,9 @@ cuComplex *f, *g;
 // Declare device variables
 cuComplex *f_d, *g_d;
 cuComplex *f_d_tmp, *g_d_tmp;
+// double up for debug
+cuComplex *f_da, *g_da;
+cuComplex *f_d_tmpa, *g_d_tmpa;
 
 
 // Declare functions
@@ -254,8 +258,10 @@ int main(int argc, char* argv[]) {
         // Zeroth step
         if (nlrun) courant(&dt, f_d, g_d);
         DEBUGPRINT("dt = %f\n", dt);
-        advance(f_d_tmp, f_d, g_d_tmp, g_d, dt, istep);
-        diagnostics(f_d, g_d, tim, 0, id);
+        advance(f_d_tmp, f_d, g_d_tmp, g_d, dt, istep,
+                f_d_tmpa, f_da, g_d_tmpa, g_da);
+        diagnostics(f_d, g_d, tim, 0, id,
+                    f_da, g_da); //double up here or inside function? the function it contains tags global vars
         istep++;
         tim+=dt;
         while(istep < nsteps) {
@@ -270,7 +276,8 @@ int main(int argc, char* argv[]) {
             if (nlrun) courant(&dt, f_d, g_d);
 
             // Time advance RMHD & slow mode equations
-            advance(f_d_tmp, f_d, g_d_tmp, g_d, dt, istep);
+            advance(f_d_tmp, f_d, g_d_tmp, g_d, dt, istep,
+                    f_d_tmpa, f_da, g_d_tmpa, g_da);
 
             tim+=dt;
             istep++;
@@ -613,14 +620,23 @@ void allocate_arrays()
     cudaMalloc((void**) &temp1, Nkc);
     cudaMalloc((void**) &temp2, Nkc);
     cudaMalloc((void**) &temp3, Nkc);
+    cudaMalloc((void**) &temp1a, Nkc);
+    cudaMalloc((void**) &temp2a, Nkc);
+    cudaMalloc((void**) &temp3a, Nkc);
 
     cudaMalloc((void**) &fdxR, sizeof(float)*Nx*Ny*Nz);
     cudaMalloc((void**) &fdyR, sizeof(float)*Nx*Ny*Nz);
     cudaMalloc((void**) &gdxR, sizeof(float)*Nx*Ny*Nz);
     cudaMalloc((void**) &gdyR, sizeof(float)*Nx*Ny*Nz);
+    cudaMalloc((void**) &fdxRa, sizeof(float)*Nx*Ny*Nz);
+    cudaMalloc((void**) &fdyRa, sizeof(float)*Nx*Ny*Nz);
+    cudaMalloc((void**) &gdxRa, sizeof(float)*Nx*Ny*Nz);
+    cudaMalloc((void**) &gdyRa, sizeof(float)*Nx*Ny*Nz);
 
     cudaMalloc((void**) &dx, Nkc);
     cudaMalloc((void**) &dy, Nkc);
+    cudaMalloc((void**) &dxa, Nkc);
+    cudaMalloc((void**) &dya, Nkc);
 
     cudaMalloc((void**) &padded, sizeof(cuComplex)*Nx*Ny*Nz);
 
@@ -632,17 +648,22 @@ void destroy_arrays(){
 
     // Destroy device arrays containing fields
     cudaFree(f_d); cudaFree(g_d);
+    cudaFree(f_da); cudaFree(g_da);
 
     // Destroy dummy arrays
     // Fields
     cudaFree(f_d_tmp); cudaFree(g_d_tmp);
+    cudaFree(f_d_tmpa); cudaFree(g_d_tmpa);
 
     // nonlin
     cudaFree(temp1); cudaFree(temp2); cudaFree(temp3);
+    cudaFree(temp1a); cudaFree(temp2a); cudaFree(temp3a);
 
     cudaFree(fdxR); cudaFree(fdyR); cudaFree(gdxR); cudaFree(gdyR);
+    cudaFree(fdxRa); cudaFree(fdyRa); cudaFree(gdxRa); cudaFree(gdyRa);
 
     cudaFree(dx); cudaFree(dy);
+    cudaFree(dxa); cudaFree(dya);
 
     // courant
     cudaFree(padded);
@@ -825,4 +846,5 @@ void finit(cuComplex *f, cuComplex *g)
     }
 
 }
+
 

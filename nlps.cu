@@ -14,7 +14,8 @@ void fft_plan_destroy()
     if(cufftDestroy(plan_R2C) != CUFFT_SUCCESS) printf("plan_R2C destruction failed. \n");
 }
 
-void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
+void NLPS(cuComplex *result, cuComplex *f, cuComplex *g,
+            cuComplex *resulta, cuComplex *fa, cuComplex *ga)
 {
     // nb changed 2024/07/08
     //https://spiral-software.github.io/fftx/apis.html#fftxproblem
@@ -34,59 +35,60 @@ void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
     */
     //the CUDA code executes across X and Y separately, FFTX appears to do both together
     // do we need 6?
-    std::vector<void*> args_C2R_fy{&fdyR, &dy}, args_C2R_fx{&fdxR, &dx},
-        args_C2R_gy{&gdyR, &dy}, args_C2R_gx{&gdxR, &dx},
-        args_in_R2C{&result, &fdxR};
+    std::vector<void*> args_C2R_fy{&fdyRa, &dya}, args_C2R_fx{&fdxRa, &dxa},
+        args_C2R_gy{&gdyRa, &dya}, args_C2R_gx{&gdxRa, &dxa},
+        args_in_R2C{&resulta, &fdxRa};
     
     GRADIENT (f, dx, dy);
-/*
+    GRADIENT (fa, dxa, dya);
+
     if(cufftExecC2R(plan_C2R, dy, fdyR) != CUFFT_SUCCESS) printf("fdyR calculation failed. \n");
     if(cufftExecC2R(plan_C2R, dx, fdxR) != CUFFT_SUCCESS) printf("fdxR calculation failed. \n");
-*/
-    // type of transform = complex-to-real
-    //c2r_prob.setName("imdprdft");
-    
-    // set i/o location, use f on dy
+
+    // set i/o location, use fa on dya
     c2r_prob.setArgs(args_C2R_fy);
     // perform transform
     c2r_prob.transform();
     
-    // set i/o location, use f on dx
+    // set i/o location, use fa on dxa
     c2r_prob.setArgs(args_C2R_fx);
     // perform transform
     c2r_prob.transform();
     
     GRADIENT (g, dx, dy);
-/*
+    GRADIENT (ga, dxa, dya);
+
     if(cufftExecC2R(plan_C2R, dy, gdyR) != CUFFT_SUCCESS) printf("gdyR calculation failed.  \n");
     if(cufftExecC2R(plan_C2R, dx, gdxR) != CUFFT_SUCCESS) printf("gdyR calculation failed.  \n");
-*/
-    // set i/o location, use g on dy
+
+    // set i/o location, use ga on dya
     c2r_prob.setArgs(args_C2R_gy);
     // perform transform
     c2r_prob.transform();
     
-    // set i/o location, use g on dx
+    // set i/o location, use ga on dxa
     c2r_prob.setArgs(args_C2R_gx);
     // perform transform
     c2r_prob.transform();
     
     // Reuse fdxR as result 
     bracket <<<dG,dB>>> (fdxR, fdxR, fdyR, gdxR, gdyR, 1.0);
-/*
+    bracket <<<dG,dB>>> (fdxRa, fdxRa, fdyRa, gdxRa, gdyRa, 1.0);
+
     if(cufftExecR2C(plan_R2C, fdxR, result) != CUFFT_SUCCESS) printf("R2C failed. \n");  
-*/
-    // type of transform = real-to-complex
-    //r2c_prob.setName("mdprdft");
+
     // set i/o location, "reuse fdxR as result" sent to result
     r2c_prob.setArgs(args_in_R2C);
     // perform transform
     r2c_prob.transform();
     
     scale <<<dG,dB>>> (result,1.0f/((float) Nx*Ny*Nz));
+    scale <<<dG,dB>>> (resulta,1.0f/((float) Nx*Ny*Nz));
 
     // Dealias
     mask <<<dG,dB>>> (result);
+    mask <<<dG,dB>>> (resulta);
 }
+
 
 

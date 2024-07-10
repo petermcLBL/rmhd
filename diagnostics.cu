@@ -248,42 +248,56 @@ void j_z_diag( cuComplex * A, float time, int jstep, struct NetCDF_ids id )
 
 
 
-void alf_diagnostics(cuComplex* kPhi, cuComplex* kA, cuComplex* zp, cuComplex* zm, float time, int jstep, struct NetCDF_ids id){
+void alf_diagnostics(cuComplex* kPhi, cuComplex* kA, cuComplex* zp, cuComplex* zm, float time, int jstep, struct NetCDF_ids id, 
+                    cuComplex* kPhia, cuComplex* kAa, cuComplex* zpa, cuComplex* zma){
     // Calculate kperp**2 * phi and kperp**2 A for all alfven diagnostics
     addsubt <<<dG,dB>>> (kPhi, zp, zm, 1);
+    addsubt <<<dG,dB>>> (kPhia, zpa, zma, 1);
     //kPhi = zp+zm
 
     scale <<<dG,dB>>> (kPhi, .5);
+    scale <<<dG,dB>>> (kPhia, .5);
     //kPhi = .5*(zp+zm) = phi
 
     addsubt <<<dG,dB>>> (kA, zp, zm, -1);
+    addsubt <<<dG,dB>>> (kAa, zpa, zma, -1);
     //kA = zp-zm
 
     scale <<<dG,dB>>> (kA, .5);
+    scale <<<dG,dB>>> (kAa, .5);
     //kA = .5*(zp-zm) = A
 
 	 // Pass Psi(kx,ky,kz) to the diagnostic
 	 j_z_diag( kA, time, jstep, id );
+     j_z_diag( kAa, time, jstep, id );
    
     // reset kA = Psi
     addsubt <<<dG,dB>>> (kA, zp, zm, -1);
     scale <<<dG,dB>>> (kA, .5);
+    addsubt <<<dG,dB>>> (kAa, zpa, zma, -1);
+    scale <<<dG,dB>>> (kAa, .5);
     
     if (linonly) peak(kPhi, time);
 
     squareComplex <<<dG,dB>>> (kPhi);
+    squareComplex <<<dG,dB>>> (kPhia);
     //kPhi = phi**2
 
     squareComplex <<<dG,dB>>> (kA);
+    squareComplex <<<dG,dB>>> (kAa);
     //kA = A**2
 
     fixFFT <<<dG,dB>>>(kPhi);
     fixFFT <<<dG,dB>>>(kA);
+    fixFFT <<<dG,dB>>>(kPhia);
+    fixFFT <<<dG,dB>>>(kAa);
 
     multKPerp <<<dG,dB>>> (kPhi, kPhi, -1);
+    multKPerp <<<dG,dB>>> (kPhia, kPhia, -1);
     //kPhi = (kperp**2) * (phi**2)
 
     multKPerp <<<dG,dB>>> (kA, kA, -1);
+    multKPerp <<<dG,dB>>> (kAa, kAa, -1);
     //kA = (kperp**2) * (A**2)
 
     int retval;
@@ -552,9 +566,11 @@ void close_netcdf_diag(struct NetCDF_ids id){
 
 }
 
-void diagnostics(cuComplex* zp, cuComplex* zm, float time, int jstep, struct NetCDF_ids id){
+void diagnostics(cuComplex* zp, cuComplex* zm, float time, int jstep, struct NetCDF_ids id,
+            cuComplex* zpa, cuComplex* zma){
 
-    alf_diagnostics(temp1, temp2, zp, zm, time, jstep, id);
+    alf_diagnostics(temp1, temp2, zp, zm, time, jstep, id,
+                    temp1a, temp2a, zpa, zma);
 }
 //////////////////////////////////////////////////////////////////////
 // Alfven collision diagnostic
@@ -642,3 +658,4 @@ void aw_coll_diag(cuComplex* zp2, cuComplex* zm2, float time){
 
 
 }
+
