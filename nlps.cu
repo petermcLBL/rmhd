@@ -14,7 +14,7 @@ void fft_plan_destroy()
     if(cufftDestroy(plan_R2C) != CUFFT_SUCCESS) printf("plan_R2C destruction failed. \n");
 }
 
-void NLPS(cuComplex *result, cuComplex *f, cuComplex *g)
+void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
 {
     // nb changed 2024/07/08
     //https://spiral-software.github.io/fftx/apis.html#fftxproblem
