@@ -43,19 +43,19 @@ bool debug, restart;
 bool linonly, nlrun;
 int nwrite, nforce; // Set nforce very large if driven is false
 int nsteps;  // nsteps defaults to zero
-float maxdt, cfl;
+double maxdt, cfl;
 
 // Initial conditions
 bool decaying, driven, orszag_tang, noise;
-float aw_coll;
+double aw_coll;
 
 //Computation Grid
 __constant__ int Nx, Ny, Nz, zThreads;
 size_t Nk;
 __constant__ size_t Nkc, Nkf;
-__constant__ float X0, Y0, Z0;
+__constant__ double X0, Y0, Z0;
 
-float endtime;
+double endtime;
 
 // Grid, block setup for GPU
 dim3 dG, dB;
@@ -66,14 +66,14 @@ int nkstir;
 int *kstir_x, *kstir_y, *kstir_z;
 int gm_nkstir;
 int *gm_kstir_x, *gm_kstir_y, *gm_kstir_z;
-float fampl, gm_fampl;
+double fampl, gm_fampl;
 
 // Alfvenic packet (moving to the right)
 int kpeak;
 
 // dissipation
 int alpha_z, alpha_hyper;
-float nu_kz, nu_hyper;
+double nu_kz, nu_hyper;
 
 // Internal variables
 
@@ -82,18 +82,18 @@ char *restartname;
 char stopfile[255];
 bool file_exists(char *filename);
 void read_namelist(char *filename);
-void restartRead(cuComplex* zp, cuComplex* zm, float* tim);
-void restartWrite(cuComplex* zp, cuComplex* zm, float tim);
+void restartRead(cuDoubleComplex* zp, cuDoubleComplex* zm, double* tim);
+void restartWrite(cuDoubleComplex* zp, cuDoubleComplex* zm, double tim);
 FILE *energyfile, *alf_kzkpfile, *awp_collfile, *awm_collfile;
 
 //Dummy arrays
-cuComplex *temp1, *temp2, *temp3;
-cuComplex *padded;
-cuComplex *dx, *dy;
-float *fdxR, *fdyR, *gdxR, *gdyR;
+cuDoubleComplex *temp1, *temp2, *temp3;
+cuDoubleComplex *padded;
+cuDoubleComplex *dx, *dy;
+double *fdxR, *fdyR, *gdxR, *gdyR;
 
 // nb changed 2024/07/08
-cuComplex *dsym;
+cuDoubleComplex *dsym;
 
 cufftHandle plan_C2R, plan_R2C, plan2d_C2R;
 
@@ -153,11 +153,11 @@ struct NetCDF_ids id;
 
 // Declare all required arrays
 // Declare host variables
-cuComplex *f, *g;
+cuDoubleComplex *f, *g;
 
 // Declare device variables
-cuComplex *f_d, *g_d;
-cuComplex *f_d_tmp, *g_d_tmp;
+cuDoubleComplex *f_d, *g_d;
+cuDoubleComplex *f_d_tmp, *g_d_tmp;
 
 
 // Declare functions
@@ -165,7 +165,7 @@ void allocate_arrays();
 void destroy_arrays();
 void setup_device();
 void setup_grid_block();
-void finit(cuComplex *f, cuComplex *g);
+void finit(cuDoubleComplex *f, cuDoubleComplex *g);
 
 //////////////////////////////////////////////////////////////////////
 // Main
@@ -188,8 +188,8 @@ int main(int argc, char* argv[]) {
         read_namelist(str);
 
         Nk = Nx*(Ny/2+1)*Nz;
-        *&Nkc = Nk*sizeof(cuComplex);
-        *&Nkf = Nk*sizeof(float);
+        *&Nkc = Nk*sizeof(cuDoubleComplex);
+        *&Nkf = Nk*sizeof(double);
 
         cudaMemcpyToSymbol(Nkc, &Nkc, sizeof(size_t));
         cudaMemcpyToSymbol(Nkf, &Nkf, sizeof(size_t));
@@ -217,9 +217,9 @@ int main(int argc, char* argv[]) {
         fft_plan_create();
 
         //////////////////////////////////////////////////////////
-        //    float dt = 1.e-2;
-        float dt = maxdt;
-        float tim=0;
+        //    double dt = 1.e-2;
+        double dt = maxdt;
+        double tim=0;
         int istep=0;
         srand( (unsigned) time(NULL));
         //////////////////////////////////////////////////////////
@@ -290,7 +290,7 @@ int main(int argc, char* argv[]) {
         printf("Done.\n");
 
 
-        float elapsed_time;
+        double elapsed_time;
         cudaEventRecord(stop, 0);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&elapsed_time, start, stop);
@@ -360,8 +360,8 @@ void read_namelist(char* filename) {
 
     if (fnr_get_int(&nml,   "algo", "nwrite", &nwrite)) nwrite = 1;
     if (fnr_get_int(&nml,   "algo", "nforce", &nforce)) nforce = 1;
-    if (fnr_get_float(&nml, "algo", "maxdt",  &maxdt))  maxdt = .1;
-    if (fnr_get_float(&nml, "algo", "cfl",    &cfl))    cfl = .1;
+    if (fnr_get_double(&nml, "algo", "maxdt",  &maxdt))  maxdt = .1;
+    if (fnr_get_double(&nml, "algo", "cfl",    &cfl))    cfl = .1;
 
     DEBUGPRINT("Algo read \n");
 
@@ -384,7 +384,7 @@ void read_namelist(char* filename) {
     fnr_get_int(&nml, "init", "noise", &noise_i);
     if(noise_i == 0) noise = false;
 
-    if (fnr_get_float(&nml, "init", "aw_coll", &aw_coll)) aw_coll = 0. ;
+    if (fnr_get_double(&nml, "init", "aw_coll", &aw_coll)) aw_coll = 0. ;
 
     if (fnr_get_int(&nml, "init", "kpeak", &kpeak)) kpeak=8;
 
@@ -399,14 +399,14 @@ void read_namelist(char* filename) {
     if (fnr_get_int(&nml, "grid", "Nz", &Nz)) *&Nz = 16;
     cudaMemcpyToSymbol(Nz, &Nz, sizeof(int));
 
-    if (fnr_get_float(&nml, "grid", "X0", &X0)) *&X0 = 1.0f;
-    cudaMemcpyToSymbol(X0, &X0, sizeof(float));
+    if (fnr_get_double(&nml, "grid", "X0", &X0)) *&X0 = 1.0f;
+    cudaMemcpyToSymbol(X0, &X0, sizeof(double));
 
-    if (fnr_get_float(&nml, "grid", "Y0", &Y0)) *&Y0 = 1.0f;
-    cudaMemcpyToSymbol(Y0, &Y0, sizeof(float));
+    if (fnr_get_double(&nml, "grid", "Y0", &Y0)) *&Y0 = 1.0f;
+    cudaMemcpyToSymbol(Y0, &Y0, sizeof(double));
 
-    if (fnr_get_float(&nml, "grid", "Z0", &Z0)) *&Z0 = 1.0f;
-    cudaMemcpyToSymbol(Z0, &Z0, sizeof(float));
+    if (fnr_get_double(&nml, "grid", "Z0", &Z0)) *&Z0 = 1.0f;
+    cudaMemcpyToSymbol(Z0, &Z0, sizeof(double));
 
     if (fnr_get_int(&nml, "grid", "nsteps", &nsteps)) nsteps = 0;
 
@@ -414,15 +414,15 @@ void read_namelist(char* filename) {
 
     // Dissipation
     if (fnr_get_int   (&nml, "dissipation", "alpha_z",     &alpha_z)) alpha_z = 2;
-    if (fnr_get_float (&nml, "dissipation", "nu_kz",       &nu_kz)) nu_kz = 1.0f;
+    if (fnr_get_double (&nml, "dissipation", "nu_kz",       &nu_kz)) nu_kz = 1.0f;
     if (fnr_get_int   (&nml, "dissipation", "alpha_hyper", &alpha_hyper)) alpha_hyper = 2;
-    if (fnr_get_float (&nml, "dissipation", "nu_hyper",    &nu_hyper)) nu_hyper = 1.0f;
+    if (fnr_get_double (&nml, "dissipation", "nu_hyper",    &nu_hyper)) nu_hyper = 1.0f;
 
     DEBUGPRINT("Dissipation read \n");
 
     // Forcing
     fnr_get_int   (&nml, "forcing", "nkstir", &nkstir);
-    fnr_get_float (&nml, "forcing", "fampl",  &fampl);
+    fnr_get_double (&nml, "forcing", "fampl",  &fampl);
 
     if(driven){
 
@@ -458,7 +458,7 @@ void read_namelist(char* filename) {
 // Restart routines
 //////////////////////////////////////////////////////////////////////
 
-void restartWrite(cuComplex* zp, cuComplex* zm, float tim) {
+void restartWrite(cuDoubleComplex* zp, cuDoubleComplex* zm, double tim) {
     DEBUGPRINT("Entering restart write\n");
     char str[255];
     FILE *restart;
@@ -467,23 +467,23 @@ void restartWrite(cuComplex* zp, cuComplex* zm, float tim) {
     restart = fopen(str, "wb");
     DEBUGPRINT("Opened restart file to write\n");
 
-    cuComplex *zp_h;
-    cuComplex *zm_h;
+    cuDoubleComplex *zp_h;
+    cuDoubleComplex *zm_h;
 
     DEBUGPRINT("Declared arrays \n");
     DEBUGPRINT("Nx = %d, Ny = %d, Nz = %d \n", Nx, Ny, Nz);
 
-    zp_h = (cuComplex*) malloc(Nkc);
+    zp_h = (cuDoubleComplex*) malloc(Nkc);
     CP_TO_CPU(zp_h, zp, Nkc);
     CUDA_DEBUG("Copying over zp %s\n");
 
-    zm_h = (cuComplex*) malloc(Nkc);
+    zm_h = (cuDoubleComplex*) malloc(Nkc);
     CP_TO_CPU(zm_h, zm, Nkc);
     CUDA_DEBUG("Copying over zm %s\n");
 
     DEBUGPRINT("Allocated and filled arrays \n");
 
-    fwrite (&tim, sizeof(float), 1, restart);
+    fwrite (&tim, sizeof(double), 1, restart);
     DEBUGPRINT("Wrote istep, tim \n");
 
     fwrite(zp_h, Nkc, 1, restart);
@@ -497,7 +497,7 @@ void restartWrite(cuComplex* zp, cuComplex* zm, float tim) {
 
 }
 
-void restartRead(cuComplex* zp, cuComplex* zm, float* tim) {
+void restartRead(cuDoubleComplex* zp, cuDoubleComplex* zm, double* tim) {
     char stri[255];
     FILE *restart;
     strcpy(stri, restartname);
@@ -505,13 +505,13 @@ void restartRead(cuComplex* zp, cuComplex* zm, float* tim) {
     DEBUGPRINT("Restartfile = %s \n", stri);
     restart = fopen(stri, "rb");
 
-    cuComplex *zp_h;
-    cuComplex *zm_h;
+    cuDoubleComplex *zp_h;
+    cuDoubleComplex *zm_h;
 
-    zp_h = (cuComplex*) malloc(Nkc);
-    zm_h = (cuComplex*) malloc(Nkc);
+    zp_h = (cuDoubleComplex*) malloc(Nkc);
+    zm_h = (cuDoubleComplex*) malloc(Nkc);
 
-    fread(tim,sizeof(float),1,restart);
+    fread(tim,sizeof(double),1,restart);
 
     fread(zp_h, Nkc, 1, restart);
     CP_TO_GPU(zp, zp_h, Nkc);
@@ -570,22 +570,22 @@ void setup_grid_block(){
     else dB.z = Nz;
 
     int xy = (int) totalThreads/dB.z;
-    int blockxy = (int) sqrt((float) xy);
+    int blockxy = (int) sqrt((double) xy);
 
     //dB = threadsPerBlock, dG = numBlocks
     dB.x = blockxy;
     dB.y = blockxy;
 
     if(Nz>zThreads) {
-        dB.x = (unsigned int) sqrt((float) totalThreads/zBlockThreads);
-        dB.y = (unsigned int) sqrt((float) totalThreads/zBlockThreads);
+        dB.x = (unsigned int) sqrt((double) totalThreads/zBlockThreads);
+        dB.y = (unsigned int) sqrt((double) totalThreads/zBlockThreads);
         dB.z = zBlockThreads;
     }
 
-    dG.x = (unsigned int) ceil((float) Nx/dB.x + 0);
-    dG.y = (unsigned int) ceil((float) Ny/dB.y + 0);
+    dG.x = (unsigned int) ceil((double) Nx/dB.x + 0);
+    dG.y = (unsigned int) ceil((double) Ny/dB.y + 0);
     if(prop.maxGridSize[2]==1) dG.z = 1;
-    else dG.z = (unsigned int) ceil((float) Nz/dB.z) ;
+    else dG.z = (unsigned int) ceil((double) Nz/dB.z) ;
     cudaMemcpyToSymbol(zThreads, &zThreads, sizeof(int));
     printf("zthreads = %d, zblockthreads = %d \n", zThreads, zBlockThreads);
 
@@ -601,8 +601,8 @@ void allocate_arrays()
 
     printf("Allocating arrays...\n");
     // Allocate host arrays
-    f = (cuComplex*) malloc(Nkc);
-    g = (cuComplex*) malloc(Nkc);
+    f = (cuDoubleComplex*) malloc(Nkc);
+    g = (cuDoubleComplex*) malloc(Nkc);
 
     // Allocate device arrays
     cudaMalloc((void**) &f_d, Nkc);
@@ -614,15 +614,15 @@ void allocate_arrays()
     cudaMalloc((void**) &temp2, Nkc);
     cudaMalloc((void**) &temp3, Nkc);
 
-    cudaMalloc((void**) &fdxR, sizeof(float)*Nx*Ny*Nz);
-    cudaMalloc((void**) &fdyR, sizeof(float)*Nx*Ny*Nz);
-    cudaMalloc((void**) &gdxR, sizeof(float)*Nx*Ny*Nz);
-    cudaMalloc((void**) &gdyR, sizeof(float)*Nx*Ny*Nz);
+    cudaMalloc((void**) &fdxR, sizeof(double)*Nx*Ny*Nz);
+    cudaMalloc((void**) &fdyR, sizeof(double)*Nx*Ny*Nz);
+    cudaMalloc((void**) &gdxR, sizeof(double)*Nx*Ny*Nz);
+    cudaMalloc((void**) &gdyR, sizeof(double)*Nx*Ny*Nz);
 
     cudaMalloc((void**) &dx, Nkc);
     cudaMalloc((void**) &dy, Nkc);
 
-    cudaMalloc((void**) &padded, sizeof(cuComplex)*Nx*Ny*Nz);
+    cudaMalloc((void**) &padded, sizeof(cuDoubleComplex)*Nx*Ny*Nz);
 
 }
 void destroy_arrays(){
@@ -651,10 +651,10 @@ void destroy_arrays(){
 //////////////////////////////////////////////////////////////////////
 // Alfven initialization
 //////////////////////////////////////////////////////////////////////
-void finit(cuComplex *f, cuComplex *g)
+void finit(cuDoubleComplex *f, cuDoubleComplex *g)
 {
     int iky, ikx, ikz, index;
-    float ran;
+    double ran;
 
     // Zero out f and g
     for(ikz = 0; ikz<Nz; ikz ++){
@@ -676,31 +676,31 @@ void finit(cuComplex *f, cuComplex *g)
     //	// Random initialization
     ////////////////////////////////////////////////////////////////////////
     if(noise){
-        float k2;
-        float ampl = 1.e+0/(Nx*Ny*Nz);
+        double k2;
+        double ampl = 1.e+0/(Nx*Ny*Nz);
         for(iky=1;iky<=(Ny-1)/3+1; iky++){
             for(ikz=1;ikz<=(Nz-1)/3+1; ikz++){
                 for(ikx=1;ikx<=(Nx-1)/3+1; ikx++){
 
                     index = iky + (Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-                    //k2 = pow((float) iky/Y0,2) + pow((float) ikx/X0,2) + pow((float) ikz/Z0,2);
-                    k2 = pow((float) iky/Y0,2)  + pow((float) ikz/Z0,2);
+                    //k2 = pow((double) iky/Y0,2) + pow((double) ikx/X0,2) + pow((double) ikz/Z0,2);
+                    k2 = pow((double) iky/Y0,2)  + pow((double) ikz/Z0,2);
 
                     // AVK: working Density of states effect?
-                    ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    ran = ((double) rand()) / ((double) RAND_MAX + 1);
                     f[index].x = (sqrt(ampl/k2)/k2) * cos(ran*2.0*M_PI);
                     f[index].y = (sqrt(ampl/k2)/k2) * sin(ran*2.0*M_PI);
-                    ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    ran = ((double) rand()) / ((double) RAND_MAX + 1);
                     g[index].x = (sqrt(ampl/k2)/k2) * cos(ran*2.0*M_PI);
                     g[index].y = (sqrt(ampl/k2)/k2) * sin(ran*2.0*M_PI);
 
                     /*index = + (Ny/2+1)*(Nx-ikx) + (Ny/2+1)*Nx*(Nz-ikz);
 
                     // AVK: working Density of states effect?
-                    ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    ran = ((double) rand()) / ((double) RAND_MAX + 1);
                     f[index].x = sqrt(ampl) * cos(ran*2.0*M_PI);
                     f[index].y = sqrt(ampl) * sin(ran*2.0*M_PI);
-                    ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    ran = ((double) rand()) / ((double) RAND_MAX + 1);
                     g[index].x = sqrt(ampl) * cos(ran*2.0*M_PI);
                     g[index].y = sqrt(ampl) * sin(ran*2.0*M_PI);*/
 
@@ -714,8 +714,8 @@ void finit(cuComplex *f, cuComplex *g)
     //	// Decaying Alfven cascade run
     ////////////////////////////////////////////////////////////////////////
     if(decaying){
-        //float xi0 = 1.e+2/((Nx/3)*(Ny/3)*(Nz/3));
-        float xi0 = 1.e-2;
+        //double xi0 = 1.e+2/((Nx/3)*(Ny/3)*(Nz/3));
+        double xi0 = 1.e-2;
 
         for(ikz=1; ikz<Nz/4; ikz++){
             for(ikx=1; ikx<(Nx-1)/3; ikx++){
@@ -723,12 +723,12 @@ void finit(cuComplex *f, cuComplex *g)
 
                     index = iky + (Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
 
-                    ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    ran = ((double) rand()) / ((double) RAND_MAX + 1);
 
                     f[index].x = cos(ran * 2.0* M_PI) * sqrt(xi0 * pow(iky,-10.0f/1.0f));
                     f[index].y = sin(ran * 2.0* M_PI) * sqrt(xi0 * pow(iky,-10.0f/1.0f));
 
-                    //ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    //ran = ((double) rand()) / ((double) RAND_MAX + 1);
                     g[index].x = cos(ran * 2.0* M_PI) * sqrt(xi0 * pow(iky,-10.0f/1.0f));
                     g[index].y = sin(ran * 2.0* M_PI) * sqrt(xi0 * pow(iky,-10.0f/1.0f));
                 }
@@ -741,12 +741,12 @@ void finit(cuComplex *f, cuComplex *g)
 
                     index = iky + (Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
 
-                    ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    ran = ((double) rand()) / ((double) RAND_MAX + 1);
 
                     f[index].x = cos(ran * 2.0* M_PI) * sqrt(xi0 * pow(iky,-10.0f/1.0f));
                     f[index].y = sin(ran * 2.0* M_PI) * sqrt(xi0 * pow(iky,-10.0f/1.0f));
 
-                    //ran = ((float) rand()) / ((float) RAND_MAX + 1);
+                    //ran = ((double) rand()) / ((double) RAND_MAX + 1);
                     g[index].x = cos(ran * 2.0* M_PI)* sqrt(xi0 * pow(iky,-10.0f/1.0f));
                     g[index].y = sin(ran * 2.0* M_PI) * sqrt(xi0 * pow(iky,-10.0f/1.0f));
                 }
@@ -813,7 +813,7 @@ void finit(cuComplex *f, cuComplex *g)
     index = iky + (Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
 
     //f[index].y = aw_coll * 0.5;
-    float aw_envelope;
+    double aw_envelope;
     ikx=0; iky=1;
     for (ikz = 0 ; ikz<Nz/2+1 ; ikz++)
     {
