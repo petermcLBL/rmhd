@@ -1,9 +1,9 @@
-void courant(float* dt,  cuComplex* zp, cuComplex* zm)
+void courant(float* dt,  cuDoubleComplex* zp, cuDoubleComplex* zm)
 {
     zero <<<dG, dB>>> (padded, Nx, Ny, Nz);
 
-    cuComplex *max;
-    max = (cuComplex*) malloc(sizeof(cuComplex));
+    cuDoubleComplex *max;
+    max = (cuDoubleComplex*) malloc(sizeof(cuDoubleComplex));
 
     float vxmax, vymax, omega_zmax;
 
