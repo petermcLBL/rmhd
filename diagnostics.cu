@@ -4,28 +4,28 @@
 
 // kz- Kperp spectra of Alfven waves
 
-void energy_kz_kperp(cuComplex* kPhi, cuComplex* kA, float time, int jstep, struct NetCDF_ids id)
+void energy_kz_kperp(cuDoubleComplex* kPhi, cuDoubleComplex* kA, double time, int jstep, struct NetCDF_ids id)
 {
 
-    //  int ikpmax = (int) ceil( sqrt( pow((float)(Nx-1)/3, 2) + pow((float)(Ny-1)/3, 2) ) );
-    //  float kpmax = ceil( sqrt( pow((float)(Nx-1)/3, 2) + pow((float)(Ny-1)/3, 2) ) );
+    //  int ikpmax = (int) ceil( sqrt( pow((double)(Nx-1)/3, 2) + pow((double)(Ny-1)/3, 2) ) );
+    //  double kpmax = ceil( sqrt( pow((double)(Nx-1)/3, 2) + pow((double)(Ny-1)/3, 2) ) );
 
     int ikpmax = (int) (Nx-1)/3;
-    float kpmax = (float) (Nx-1)/3;
-    float *kinEnergy_kp, *magEnergy_kp;
+    double kpmax = (double) (Nx-1)/3;
+    double *kinEnergy_kp, *magEnergy_kp;
 
-    float *totEnergy_h, *kinEnergy_h, *magEnergy_h;
+    double *totEnergy_h, *kinEnergy_h, *magEnergy_h;
 
-    totEnergy_h = (float*) malloc(sizeof(float));
-    kinEnergy_h = (float*) malloc(sizeof(float));
-    magEnergy_h = (float*) malloc(sizeof(float));
+    totEnergy_h = (double*) malloc(sizeof(double));
+    kinEnergy_h = (double*) malloc(sizeof(double));
+    magEnergy_h = (double*) malloc(sizeof(double));
 
 
     kinEnergy_h[0] = 0.;
     magEnergy_h[0] = 0.;
 
-    cuComplex *kPhi_h;
-    kPhi_h = (cuComplex*) malloc(Nkc);
+    cuDoubleComplex *kPhi_h;
+    kPhi_h = (cuDoubleComplex*) malloc(Nkc);
     CP_TO_CPU(kPhi_h, kPhi, Nkc);
     int Nyc = (Ny/2+1);
     // want to pull kphi up here to the host and sum it
@@ -43,8 +43,8 @@ void energy_kz_kperp(cuComplex* kPhi, cuComplex* kA, float time, int jstep, stru
 
 
     // Allocate arrays to hold kinetic and magnetic energy vs k on GPU
-    cudaMalloc((void**) &kinEnergy_kp, sizeof(float)*ikpmax*Nz);
-    cudaMalloc((void**) &magEnergy_kp, sizeof(float)*ikpmax*Nz);
+    cudaMalloc((void**) &kinEnergy_kp, sizeof(double)*ikpmax*Nz);
+    cudaMalloc((void**) &magEnergy_kp, sizeof(double)*ikpmax*Nz);
 
     // Set array values to zero
     zero <<<Nz,ikpmax>>> (kinEnergy_kp, Nz*ikpmax,1,1);
@@ -59,11 +59,11 @@ void energy_kz_kperp(cuComplex* kPhi, cuComplex* kA, float time, int jstep, stru
 
     CUDA_DEBUG("kz_kpshellsum: %s\n");
 
-    float *kinEnergy_kp_h, *magEnergy_kp_h;
+    double *kinEnergy_kp_h, *magEnergy_kp_h;
 
     // Allocate arrays to hold kinetic and magnetic energy vs k on CPU
-    kinEnergy_kp_h = (float*) malloc(sizeof(float)*ikpmax*Nz);
-    magEnergy_kp_h = (float*) malloc(sizeof(float)*ikpmax*Nz);
+    kinEnergy_kp_h = (double*) malloc(sizeof(double)*ikpmax*Nz);
+    magEnergy_kp_h = (double*) malloc(sizeof(double)*ikpmax*Nz);
 
     // Set array values to zero
     for (int i=0; i<ikpmax*Nz; i++) {
@@ -71,9 +71,9 @@ void energy_kz_kperp(cuComplex* kPhi, cuComplex* kA, float time, int jstep, stru
         magEnergy_kp_h[i] = 0.;
     }
 
-    CP_TO_CPU (kinEnergy_kp_h, kinEnergy_kp, sizeof(float)*ikpmax*Nz);
+    CP_TO_CPU (kinEnergy_kp_h, kinEnergy_kp, sizeof(double)*ikpmax*Nz);
     CUDA_DEBUG("Copying shell sums KE: %s\n");
-    CP_TO_CPU (magEnergy_kp_h, magEnergy_kp, sizeof(float)*ikpmax*Nz);
+    CP_TO_CPU (magEnergy_kp_h, magEnergy_kp, sizeof(double)*ikpmax*Nz);
     CUDA_DEBUG("Copying shell sums ME: %s\n");
 
 
@@ -112,18 +112,18 @@ void energy_kz_kperp(cuComplex* kPhi, cuComplex* kA, float time, int jstep, stru
 
 ////////////////////////////////////////
 // Total energy
-void energy(cuComplex* kPhi, cuComplex* kA, float time, int jstep, struct NetCDF_ids id)
+void energy(cuDoubleComplex* kPhi, cuDoubleComplex* kA, double time, int jstep, struct NetCDF_ids id)
 {
     DEBUGPRINT("Entering energy\n");
 
-    cuComplex *padded;
-    cudaMalloc((void**) &padded, sizeof(cuComplex)*Nx*Ny*Nz);
+    cuDoubleComplex *padded;
+    cudaMalloc((void**) &padded, sizeof(cuDoubleComplex)*Nx*Ny*Nz);
 
-    cuComplex *totEnergy_h, *kinEnergy_h, *magEnergy_h;
+    cuDoubleComplex *totEnergy_h, *kinEnergy_h, *magEnergy_h;
 
-    totEnergy_h = (cuComplex*) malloc(sizeof(cuComplex));
-    kinEnergy_h = (cuComplex*) malloc(sizeof(cuComplex));
-    magEnergy_h = (cuComplex*) malloc(sizeof(cuComplex));
+    totEnergy_h = (cuDoubleComplex*) malloc(sizeof(cuDoubleComplex));
+    kinEnergy_h = (cuDoubleComplex*) malloc(sizeof(cuDoubleComplex));
+    magEnergy_h = (cuDoubleComplex*) malloc(sizeof(cuDoubleComplex));
 
     kinEnergy_h[0].x=0.;
     kinEnergy_h[0].y=0.;
@@ -160,22 +160,22 @@ void energy(cuComplex* kPhi, cuComplex* kA, float time, int jstep, struct NetCDF
 
 }    
 
-void peak(cuComplex* kPhi, float time)
+void peak(cuDoubleComplex* kPhi, double time)
 {
-    float *rPhi;
-    cudaMalloc((void**) &rPhi, sizeof(float)*Nx*Ny*Nz);
+    double *rPhi;
+    cudaMalloc((void**) &rPhi, sizeof(double)*Nx*Ny*Nz);
 
     if(cufftExecC2R(plan_C2R, kPhi, rPhi) != CUFFT_SUCCESS) printf("oops in peak \n");
 
-    float *rPhi_h;
-    rPhi_h = (float*) malloc(sizeof(float)*Nx*Ny*Nz);
-    CP_TO_CPU(rPhi_h, rPhi, sizeof(float)*Nx*Ny*Nz);
+    double *rPhi_h;
+    rPhi_h = (double*) malloc(sizeof(double)*Nx*Ny*Nz);
+    CP_TO_CPU(rPhi_h, rPhi, sizeof(double)*Nx*Ny*Nz);
     cudaFree(rPhi);
 
     int idx;
     int i, j, k, isave, jsave, ksave;
     int idxmax;
-    float pmax, zpos;
+    double pmax, zpos;
     pmax = 0.;
     isave = 0;
     jsave = 0;
@@ -217,7 +217,7 @@ void peak(cuComplex* kPhi, float time)
 }
 
 // Assumes we are passed Psi (not k_perp Psi or somesuch )
-void j_z_diag( cuComplex * A, float time, int jstep, struct NetCDF_ids id )
+void j_z_diag( cuDoubleComplex * A, double time, int jstep, struct NetCDF_ids id )
 {
     multKPerp <<<dG,dB>>> (A,A,-1.0);
 
@@ -226,8 +226,8 @@ void j_z_diag( cuComplex * A, float time, int jstep, struct NetCDF_ids id )
     if(cufftExecC2R(plan_C2R, A, fdxR ) != CUFFT_SUCCESS) printf("Inverse FFT for diagnostics failed. \n");	
 
 	 size_t Nf = Nx * Ny * Nz;
-    float *j_z_data = (float*)malloc( sizeof(float) * Nf );
-    CP_TO_CPU( j_z_data, fdxR, sizeof(float) * Nf );
+    double *j_z_data = (double*)malloc( sizeof(double) * Nf );
+    CP_TO_CPU( j_z_data, fdxR, sizeof(double) * Nf );
 
     size_t start[4],count[4];
     start[0] = jstep; start[1] = 0;  start[2] = 0;  start[3] = 0;
@@ -248,7 +248,7 @@ void j_z_diag( cuComplex * A, float time, int jstep, struct NetCDF_ids id )
 
 
 
-void alf_diagnostics(cuComplex* kPhi, cuComplex* kA, cuComplex* zp, cuComplex* zm, float time, int jstep, struct NetCDF_ids id){
+void alf_diagnostics(cuDoubleComplex* kPhi, cuDoubleComplex* kA, cuDoubleComplex* zp, cuDoubleComplex* zm, double time, int jstep, struct NetCDF_ids id){
     // Calculate kperp**2 * phi and kperp**2 A for all alfven diagnostics
     addsubt <<<dG,dB>>> (kPhi, zp, zm, 1);
     //kPhi = zp+zm
@@ -324,11 +324,11 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
 
     int retval;
 
-    //  int ikpmax = (int) ceil( sqrt( pow((float)(Nx-1)/3, 2) + pow((float)(Ny-1)/3, 2) ) );
-    //  float kpmax = ceil( sqrt( pow((float)(Nx-1)/3, 2) + pow((float)(Ny-1)/3, 2) ) );
+    //  int ikpmax = (int) ceil( sqrt( pow((double)(Nx-1)/3, 2) + pow((double)(Ny-1)/3, 2) ) );
+    //  double kpmax = ceil( sqrt( pow((double)(Nx-1)/3, 2) + pow((double)(Ny-1)/3, 2) ) );
     int ikpmax = (int) (Nx-1)/3;
-    float kpmax = (float) (Nx-1)/3;
-    float kpar[Nz], kperp[ikpmax];
+    double kpmax = (double) (Nx-1)/3;
+    double kpar[Nz], kperp[ikpmax];
 
     strcpy(str, runname);
     strcat(str, ".nc");
@@ -342,15 +342,15 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
 
     if (retval = nc_def_dim(id.file, "kx",   Nx,      &id.kx_dim))     ERR(retval);
     if (retval = nc_def_dim(id.file, "ky",   Ny/2+1,  &id.ky_dim))     ERR(retval);
-    if (retval = nc_def_var(id.file, "kx", NC_FLOAT, 1, &id.kx_dim, &id.kx_vals)) ERR(retval);
-    if (retval = nc_def_var(id.file, "ky", NC_FLOAT, 1, &id.ky_dim, &id.ky_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "kx", NC_double, 1, &id.kx_dim, &id.kx_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "ky", NC_double, 1, &id.ky_dim, &id.ky_vals)) ERR(retval);
 
     if (retval = nc_def_dim(id.file, "x",   Nx,  &id.x_dim))     ERR(retval);
     if (retval = nc_def_dim(id.file, "y",   Ny,  &id.y_dim))     ERR(retval);
     if (retval = nc_def_dim(id.file, "z",   Nz,  &id.z_dim))     ERR(retval);
-    if (retval = nc_def_var(id.file, "x", NC_FLOAT, 1, &id.x_dim, &id.x_vals)) ERR(retval);
-    if (retval = nc_def_var(id.file, "y", NC_FLOAT, 1, &id.y_dim, &id.y_vals)) ERR(retval);
-    if (retval = nc_def_var(id.file, "z", NC_FLOAT, 1, &id.z_dim, &id.z_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "x", NC_double, 1, &id.x_dim, &id.x_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "y", NC_double, 1, &id.y_dim, &id.y_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "z", NC_double, 1, &id.z_dim, &id.z_vals)) ERR(retval);
 
 
 
@@ -372,36 +372,36 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
     if (retval = nc_def_var(id.file, "Ny", NC_INT, 0, 0, &id.ny)) ERR(retval);
     if (retval = nc_def_var(id.file, "Nz", NC_INT, 0, 0, &id.nz)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "x0", NC_FLOAT, 0, 0, &id.x0)) ERR(retval);
-    if (retval = nc_def_var(id.file, "y0", NC_FLOAT, 0, 0, &id.y0)) ERR(retval);
-    if (retval = nc_def_var(id.file, "z0", NC_FLOAT, 0, 0, &id.z0)) ERR(retval);
+    if (retval = nc_def_var(id.file, "x0", NC_double, 0, 0, &id.x0)) ERR(retval);
+    if (retval = nc_def_var(id.file, "y0", NC_double, 0, 0, &id.y0)) ERR(retval);
+    if (retval = nc_def_var(id.file, "z0", NC_double, 0, 0, &id.z0)) ERR(retval);
 
     if (retval = nc_def_var(id.file, "nsteps", NC_INT, 0, 0, &id.nsteps)) ERR(retval);
-    if (retval = nc_def_var(id.file, "t", NC_FLOAT, 1, &id.t_dim, &id.t)) ERR(retval);
+    if (retval = nc_def_var(id.file, "t", NC_double, 1, &id.t_dim, &id.t)) ERR(retval);
     // should put text attribute "Time"
     // should put text attribute "Units"
 
     if (retval = nc_def_var(id.file, "nwrite", NC_INT, 0, 0, &id.nwrite)) ERR(retval);
     if (retval = nc_def_var(id.file, "nforce", NC_INT, 0, 0, &id.nforce)) ERR(retval);
-    if (retval = nc_def_var(id.file, "maxdt", NC_FLOAT, 0, 0, &id.maxdt)) ERR(retval);
-    if (retval = nc_def_var(id.file, "cfl", NC_FLOAT, 0, 0, &id.cfl)) ERR(retval);
+    if (retval = nc_def_var(id.file, "maxdt", NC_double, 0, 0, &id.maxdt)) ERR(retval);
+    if (retval = nc_def_var(id.file, "cfl", NC_double, 0, 0, &id.cfl)) ERR(retval);
     //  if (retval = nc_def_var(id.file, "restart_name", NC_CHAR, ?, ?, &restart_name)) ERR(retval);
 
     if (retval = nc_def_var(id.file, "alpha_z", NC_INT, 0, 0, &id.alpha_z)) ERR(retval);
     if (retval = nc_def_var(id.file, "alpha_hyper", NC_INT, 0, 0, &id.alpha_hyper)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "nu_kz", NC_FLOAT, 0, 0, &id.nu_kz)) ERR(retval);
-    if (retval = nc_def_var(id.file, "nu_hyper", NC_FLOAT, 0, 0, &id.nu_hyper)) ERR(retval);
+    if (retval = nc_def_var(id.file, "nu_kz", NC_double, 0, 0, &id.nu_kz)) ERR(retval);
+    if (retval = nc_def_var(id.file, "nu_hyper", NC_double, 0, 0, &id.nu_hyper)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "kperp", NC_FLOAT, 1, &id.kperp_dim, &id.kperp)) ERR(retval);
-    //  if (retval = nc_def_var(id.file, "kz",    NC_FLOAT, 1, &id.kz_dim,    &id.kz))    ERR(retval);
-    if (retval = nc_def_var(id.file, "kpar",  NC_FLOAT, 1, &id.kpar_dim,  &id.kpar))  ERR(retval);
+    if (retval = nc_def_var(id.file, "kperp", NC_double, 1, &id.kperp_dim, &id.kperp)) ERR(retval);
+    //  if (retval = nc_def_var(id.file, "kz",    NC_double, 1, &id.kz_dim,    &id.kz))    ERR(retval);
+    if (retval = nc_def_var(id.file, "kpar",  NC_double, 1, &id.kpar_dim,  &id.kpar))  ERR(retval);
 
     if (retval = nc_def_var(id.file, "kpeak", NC_INT, 0, 0, &id.kpeak)) ERR(retval);
 
     if (driven) {
         if (retval = nc_def_dim(id.file, "nkstir",  nkstir, &id.stir_dim)) ERR(retval);
-        if (retval = nc_def_var(id.file, "fampl", NC_FLOAT, 0, 0, &id.fampl)) ERR(retval);
+        if (retval = nc_def_var(id.file, "fampl", NC_double, 0, 0, &id.fampl)) ERR(retval);
 
         id.kstir[0] = id.stir_dim;
 
@@ -420,40 +420,40 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
     id.kparperp[1] = id.kperp_dim;
     id.kparperp[2] = id.kpar_dim;
 
-    if (retval = nc_def_var(id.file, "b2_kparkperp", NC_FLOAT, 3, id.kparperp, &id.b2)) ERR(retval);
-    if (retval = nc_def_var(id.file, "v2_kparkperp", NC_FLOAT, 3, id.kparperp, &id.v2)) ERR(retval);
+    if (retval = nc_def_var(id.file, "b2_kparkperp", NC_double, 3, id.kparperp, &id.b2)) ERR(retval);
+    if (retval = nc_def_var(id.file, "v2_kparkperp", NC_double, 3, id.kparperp, &id.v2)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "v2", NC_FLOAT, 1, &id.t_dim, &id.v2_tot )) ERR(retval);
-    if (retval = nc_def_var(id.file, "b2", NC_FLOAT, 1, &id.t_dim, &id.b2_tot )) ERR(retval);
+    if (retval = nc_def_var(id.file, "v2", NC_double, 1, &id.t_dim, &id.v2_tot )) ERR(retval);
+    if (retval = nc_def_var(id.file, "b2", NC_double, 1, &id.t_dim, &id.b2_tot )) ERR(retval);
 
     id.txyz[0] = id.t_dim;
     id.txyz[1] = id.z_dim;
     id.txyz[2] = id.x_dim;
     id.txyz[3] = id.y_dim;
 
-    if (retval = nc_def_var(id.file, "jz", NC_FLOAT, 4, id.txyz, &id.jz)) ERR(retval);
+    if (retval = nc_def_var(id.file, "jz", NC_double, 4, id.txyz, &id.jz)) ERR(retval);
 
     if (retval = nc_enddef(id.file)) ERR(retval);
 
     // need to define a temporary array for kpar (which will also serve for kz because kz is defined only as a function)
 
     for (int ikz=0; ikz<Nz; ikz++) {kpar[ikz] = kz(ikz);}
-    for (int ikp=0; ikp<ikpmax; ikp++) {kperp[ikp] = ((float) ikp/ikpmax)*kpmax;} // only makes sense if X0 and Y0 each are unity. BD
+    for (int ikp=0; ikp<ikpmax; ikp++) {kperp[ikp] = ((double) ikp/ikpmax)*kpmax;} // only makes sense if X0 and Y0 each are unity. BD
     if (retval = nc_put_var(id.file, id.kpar,  kpar))  ERR(retval); 
     if (retval = nc_put_var(id.file, id.kperp, kperp)) ERR(retval); 
 
-	 float kx_vals[Nx],ky_vals[ Ny/2 + 1 ];
+	 double kx_vals[Nx],ky_vals[ Ny/2 + 1 ];
 	 for (int ikx=0; ikx < Nx; ++ikx) { kx_vals[ ikx ] = kx( ikx ); };
 	 for (int iky=0; iky < Ny/2 + 1; ++iky) { ky_vals[ iky ] = ky( iky ); };
     if (retval = nc_put_var(id.file, id.kx_vals, kx_vals)) ERR(retval); 
     if (retval = nc_put_var(id.file, id.ky_vals, ky_vals)) ERR(retval); 
 
-    float x_vals[Nx],y_vals[Ny],z_vals[Nz];
-	 for (int ix=0; ix < Nx; ++ix) { x_vals[ ix ] = static_cast<float>( ix )/( Nx * X0 ); };
+    double x_vals[Nx],y_vals[Ny],z_vals[Nz];
+	 for (int ix=0; ix < Nx; ++ix) { x_vals[ ix ] = static_cast<double>( ix )/( Nx * X0 ); };
     if (retval = nc_put_var(id.file, id.x_vals, x_vals)) ERR(retval); 
-	 for (int iy=0; iy < Ny; ++iy) { y_vals[ iy ] = static_cast<float>( iy )/( Ny * Y0 ); };
+	 for (int iy=0; iy < Ny; ++iy) { y_vals[ iy ] = static_cast<double>( iy )/( Ny * Y0 ); };
     if (retval = nc_put_var(id.file, id.y_vals, y_vals)) ERR(retval); 
-	 for (int iz=0; iz < Nz; ++iz) { z_vals[ iz ] = static_cast<float>( iz )/( Nz * Z0 ); };
+	 for (int iz=0; iz < Nz; ++iz) { z_vals[ iz ] = static_cast<double>( iz )/( Nz * Z0 ); };
     if (retval = nc_put_var(id.file, id.z_vals, z_vals)) ERR(retval); 
 
 
@@ -552,29 +552,29 @@ void close_netcdf_diag(struct NetCDF_ids id){
 
 }
 
-void diagnostics(cuComplex* zp, cuComplex* zm, float time, int jstep, struct NetCDF_ids id){
+void diagnostics(cuDoubleComplex* zp, cuDoubleComplex* zm, double time, int jstep, struct NetCDF_ids id){
 
     alf_diagnostics(temp1, temp2, zp, zm, time, jstep, id);
 }
 //////////////////////////////////////////////////////////////////////
 // Alfven collision diagnostic
 //////////////////////////////////////////////////////////////////////
-void aw_coll_diag(cuComplex* zp2, cuComplex* zm2, float time){
+void aw_coll_diag(cuDoubleComplex* zp2, cuDoubleComplex* zm2, double time){
 
     int ikx, iky, ikz, index;
 
-    cuComplex *energy;
-    energy = (cuComplex*) malloc(sizeof(cuComplex)*2); 
+    cuDoubleComplex *energy;
+    energy = (cuDoubleComplex*) malloc(sizeof(cuDoubleComplex)*2); 
 
     // Primary mode (1, 0, -1) copied over to energy[0]
     ikx = 1; iky=0; ikz = Nz-1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy, zp2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy, zp2 + index, sizeof(cuDoubleComplex));
 
     // Primary mode (0, 1, 1) copied over to energy[1]
     ikx = 0; iky=1; ikz = 1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy+1, zp2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy+1, zp2 + index, sizeof(cuDoubleComplex));
 
     // Primary modes written out. The ky=0 mode gets scaled up due to reality condition
     fprintf(awp_collfile, "%g \t %g \t", time, sqrt(energy[0].x+energy[1].x));
@@ -582,7 +582,7 @@ void aw_coll_diag(cuComplex* zp2, cuComplex* zm2, float time){
     // Secondary mode (1, 1, 0) copied over to energy[0]
     ikx = 1; iky=1; ikz = 0;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy, zp2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy, zp2 + index, sizeof(cuDoubleComplex));
 
     //Secondary mode written out
     fprintf(awp_collfile, "%g \t ", sqrt(energy[0].x));
@@ -590,12 +590,12 @@ void aw_coll_diag(cuComplex* zp2, cuComplex* zm2, float time){
     // Tertiary mode (2, 1, -1) copied over to energy[0]
     ikx = 2; iky=1; ikz = Nz-1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy, zp2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy, zp2 + index, sizeof(cuDoubleComplex));
 
     // Tertiary mode (1, 2, 1) copied over to energy[1]
     ikx = 1; iky=2; ikz = 1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy+1, zp2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy+1, zp2 + index, sizeof(cuDoubleComplex));
 
     // Tertiary mode written out
     fprintf(awp_collfile, "%g\n", sqrt(energy[0].x + energy[1].x));
@@ -605,12 +605,12 @@ void aw_coll_diag(cuComplex* zp2, cuComplex* zm2, float time){
     // Primary mode (1, 0, -1) copied over to energy[0]
     ikx = 1; iky=0; ikz = Nz-1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy, zm2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy, zm2 + index, sizeof(cuDoubleComplex));
 
     // Primary mode (0, 1, 1) copied over to energy[1]
     ikx = 0; iky=1; ikz = 1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy+1, zm2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy+1, zm2 + index, sizeof(cuDoubleComplex));
 
     // Primary modes written out. The ky=0 mode gets scaled up due to reality condition
     fprintf(awm_collfile, "%g \t %g \t", time, sqrt(energy[0].x+energy[1].x));
@@ -618,7 +618,7 @@ void aw_coll_diag(cuComplex* zp2, cuComplex* zm2, float time){
     // Secondary mode (1, 1, 0) copied over to energy[0]
     ikx = 1; iky=1; ikz = 0;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy, zm2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy, zm2 + index, sizeof(cuDoubleComplex));
 
     //Secondary mode written out
     fprintf(awm_collfile, "%g \t ", sqrt(energy[0].x));
@@ -626,12 +626,12 @@ void aw_coll_diag(cuComplex* zp2, cuComplex* zm2, float time){
     // Tertiary mode (2, 1, -1) copied over to energy[0]
     ikx = 2; iky=1; ikz = Nz-1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy, zm2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy, zm2 + index, sizeof(cuDoubleComplex));
 
     // Tertiary mode (1, 2, 1) copied over to energy[1]
     ikx = 1; iky=2; ikz = 1;
     index = iky+(Ny/2+1)*ikx + (Ny/2+1)*Nx*ikz;
-    CP_TO_CPU(energy+1, zm2 + index, sizeof(cuComplex));
+    CP_TO_CPU(energy+1, zm2 + index, sizeof(cuDoubleComplex));
 
     // Tertiary mode written out
     fprintf(awm_collfile, "%g\n", sqrt(energy[0].x + energy[1].x));
