@@ -17,83 +17,83 @@ __device__ int iget_idy(void) {return blockIdx.y*blockDim.y+threadIdx.y;}
 __device__ int iget_idz(void) {return blockIdx.z*blockDim.z+threadIdx.z;}
 
 
-__host__ __device__ cuComplex operator+(cuComplex f, cuComplex g) 
+__host__ __device__ cuDoubleComplex operator+(cuDoubleComplex f, cuDoubleComplex g) 
 {
     return cuCaddf(f,g);
 }
 
-__host__ __device__ cuComplex operator-(cuComplex f, cuComplex g)
+__host__ __device__ cuDoubleComplex operator-(cuDoubleComplex f, cuDoubleComplex g)
 {
     return cuCsubf(f,g);
 }
 
-__host__ __device__ cuComplex operator*(float scaler, cuComplex f) 
+__host__ __device__ cuDoubleComplex operator*(double scaler, cuDoubleComplex f) 
 {
-    cuComplex result;
+    cuDoubleComplex result;
     result.x = scaler*f.x;
     result.y = scaler*f.y;
     return result;
 }
 
-__host__ __device__ cuComplex operator*(cuComplex f, float scaler) 
+__host__ __device__ cuDoubleComplex operator*(cuDoubleComplex f, double scaler) 
 {
-    cuComplex result;
+    cuDoubleComplex result;
     result.x = scaler*f.x;
     result.y = scaler*f.y;
     return result;
 }
 
-__host__ __device__ cuComplex operator*(cuComplex f, cuComplex g)
+__host__ __device__ cuDoubleComplex operator*(cuDoubleComplex f, cuDoubleComplex g)
 {
     return cuCmulf(f,g);
 }
 
-__host__ __device__ cuComplex operator/(cuComplex f, float scaler)
+__host__ __device__ cuDoubleComplex operator/(cuDoubleComplex f, double scaler)
 {
-    cuComplex result;
+    cuDoubleComplex result;
     result.x = f.x / scaler;
     result.y = f.y / scaler;
     return result;
 }
 
-__host__ __device__ cuComplex operator/(cuComplex f, cuComplex g) 
+__host__ __device__ cuDoubleComplex operator/(cuDoubleComplex f, cuDoubleComplex g) 
 {
     return cuCdivf(f,g);
 }
 
 
-__host__ __device__ cuComplex exp(cuComplex arg)
+__host__ __device__ cuDoubleComplex exp(cuDoubleComplex arg)
 {
-    cuComplex res;
-    float s, c;
-    float e = expf(arg.x);
+    cuDoubleComplex res;
+    double s, c;
+    double e = expf(arg.x);
     sincosf(arg.y, &s, &c);
     res.x = c * e;
     res.y = s * e;
     return res;
 }
 
-__host__ __device__ cuComplex pow(cuComplex arg, int power)
+__host__ __device__ cuDoubleComplex pow(cuDoubleComplex arg, int power)
 {
-    cuComplex res;
-    float r = sqrt(pow(arg.x,2) + pow(arg.y,2));
-    float theta = M_PI/2.0;
+    cuDoubleComplex res;
+    double r = sqrt(pow(arg.x,2) + pow(arg.y,2));
+    double theta = M_PI/2.0;
     if(arg.x != 0.0) theta = atan(arg.y/arg.x);
     res.x = pow(r, power) * cos(power * theta);
     res.y = pow(r, power) * sin(power * theta);
     return res;
 }
 
-__host__ __device__ cuComplex conjg(cuComplex arg)
+__host__ __device__ cuDoubleComplex conjg(cuDoubleComplex arg)
 {
-    cuComplex conjugate;
+    cuDoubleComplex conjugate;
     conjugate.x = arg.x;
     conjugate.y = -arg.y;
     return conjugate;
 
 }
 
-__host__ __device__ int sgn(float k) {
+__host__ __device__ int sgn(double k) {
 
     if(k>0) return 1;
     if(k<0) return -1;
@@ -102,52 +102,52 @@ __host__ __device__ int sgn(float k) {
 }
 
 // Wavenumber functions
-__host__ __device__ float kx(int ikx)
+__host__ __device__ double kx(int ikx)
 {
     if(ikx<Nx/2 +1) return ikx/X0;
     else return (ikx-Nx)/X0;
 
 }
-__host__ __device__ float ky(int iky)
+__host__ __device__ double ky(int iky)
 {
-    if(iky<Ny/2+1) return (float) iky/Y0;
+    if(iky<Ny/2+1) return (double) iky/Y0;
     else return 0;
 }
-__host__ __device__ float kz(int ikz)
+__host__ __device__ double kz(int ikz)
 {
     if(ikz<Nz/2 +1) return ikz/Z0;
     else return (ikz-Nz)/Z0;
 
 }
 // Real space functions
-__host__ __device__ float xx(int ix)
+__host__ __device__ double xx(int ix)
 {
-    if(ix<Nx) return ((float) ix/Nx) *2.0f*M_PI*X0;
+    if(ix<Nx) return ((double) ix/Nx) *2.0f*M_PI*X0;
     else return -1.0f;
 }
 
-__host__ __device__ float yy(int iy)
+__host__ __device__ double yy(int iy)
 {
-    if(iy<Ny) return ((float) iy/Ny) *2.0f*M_PI*Y0;
+    if(iy<Ny) return ((double) iy/Ny) *2.0f*M_PI*Y0;
     else return -1.0f;
 }
 
-__host__ __device__ float zz(int iz)
+__host__ __device__ double zz(int iz)
 {
-    if(iz<Nz) return ((float) iz/Nz) *2.0f*M_PI*Z0;
+    if(iz<Nz) return ((double) iz/Nz) *2.0f*M_PI*Z0;
     else return -1.0f;
 }
 
 // kPerp2 functions
-__host__ __device__ float kPerp2(int ikx, int iky)
+__host__ __device__ double kPerp2(int ikx, int iky)
 {
-    float kp2 = -kx(ikx)*kx(ikx) -ky(iky)*ky(iky);
+    double kp2 = -kx(ikx)*kx(ikx) -ky(iky)*ky(iky);
     return kp2;
 }
 
-__host__ __device__ float kPerp2Inv(int ikx, int iky)
+__host__ __device__ double kPerp2Inv(int ikx, int iky)
 {
-    float kp2 = -kx(ikx)*kx(ikx) -ky(iky)*ky(iky);
+    double kp2 = -kx(ikx)*kx(ikx) -ky(iky)*ky(iky);
     if(ikx !=0 || iky !=0) return 1.0f/kp2;
     else return 0.0f;
 }
@@ -155,7 +155,7 @@ __host__ __device__ float kPerp2Inv(int ikx, int iky)
 //////////////////////
 // Damp in z 
 //////////////////////
-__global__ void dampz(cuComplex* znew, float nu_kz, int alpha_z, float dt)
+__global__ void dampz(cuDoubleComplex* znew, double nu_kz, int alpha_z, double dt)
 {
     if(Nz>1){
         unsigned int idx = get_idx();
@@ -189,7 +189,7 @@ __global__ void dampz(cuComplex* znew, float nu_kz, int alpha_z, float dt)
 //////////////////////
 // Kperp Damp 
 //////////////////////
-__global__ void damp_hyper(cuComplex* znew, float nu_hyper, int alpha_hyper, float dt)
+__global__ void damp_hyper(cuDoubleComplex* znew, double nu_hyper, int alpha_hyper, double dt)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -219,7 +219,7 @@ __global__ void damp_hyper(cuComplex* znew, float nu_hyper, int alpha_hyper, flo
 
 
 // kp shell
-__global__ void kpshellsum(cuComplex* k2field2, int ikp, float* temp)
+__global__ void kpshellsum(cuDoubleComplex* k2field2, int ikp, double* temp)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -250,7 +250,7 @@ __global__ void kpshellsum(cuComplex* k2field2, int ikp, float* temp)
     }
 }
 
-__global__ void kpshellsum(float* k2field2, int ikp, float* temp)
+__global__ void kpshellsum(double* k2field2, int ikp, double* temp)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -282,7 +282,7 @@ __global__ void kpshellsum(float* k2field2, int ikp, float* temp)
 
 }
 // kz-kp shell
-__global__ void kz_kpshellsum(cuComplex* k2field2, int ikp, float* energy_kp)
+__global__ void kz_kpshellsum(cuDoubleComplex* k2field2, int ikp, double* energy_kp)
 {
 
     unsigned int idx = get_idx();
@@ -313,7 +313,7 @@ __global__ void kz_kpshellsum(cuComplex* k2field2, int ikp, float* energy_kp)
         }
     }
 }
-__global__ void kz_kpshellsum(float* k2field2, int ikp, float* energy_kp)
+__global__ void kz_kpshellsum(double* k2field2, int ikp, double* energy_kp)
 {
 
     unsigned int idx = get_idx();
@@ -345,14 +345,14 @@ __global__ void kz_kpshellsum(float* k2field2, int ikp, float* energy_kp)
     }
 }
 
-__global__ void fft_interp(float* result, cuComplex* function, float* xx, float* yy, float zz)
+__global__ void fft_interp(double* result, cuDoubleComplex* function, double* xx, double* yy, double zz)
 {
 
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
     unsigned int idz = get_idz();
-    cuComplex cj; cj.x = 0.0f; cj.y = 1.0f;
-    cuComplex tmp;
+    cuDoubleComplex cj; cj.x = 0.0f; cj.y = 1.0f;
+    cuDoubleComplex tmp;
     if(Nz<=zThreads){
         if(idx<Nx && idy<Ny/2+1 && idz<Nz){
             int index = idy + (Ny/2+1)*idx + Nx*(Ny/2+1)*idz;
@@ -375,19 +375,19 @@ __global__ void fft_interp(float* result, cuComplex* function, float* xx, float*
 }
 
 
-__global__ void fldtracestep(float* cnew, float* cold,  float* dBfield, float dz)
+__global__ void fldtracestep(double* cnew, double* cold,  double* dBfield, double dz)
 {
     cnew[0] = cold[0] + dBfield[0]*dz;
-    cnew[0] = cnew[0] - 2.0*M_PI*((float) floor(cnew[0]/(2.0*M_PI) + 0.0*0.5));
+    cnew[0] = cnew[0] - 2.0*M_PI*((double) floor(cnew[0]/(2.0*M_PI) + 0.0*0.5));
 }
 
-__global__ void assign_fld(float* xfld, float* yfld, float *xfld0, float *yfld0)
+__global__ void assign_fld(double* xfld, double* yfld, double *xfld0, double *yfld0)
 {
     xfld[0] = xfld0[0];
     yfld[0] = yfld0[0];
 }
 
-__global__ void assign_foot(float* xfld0, float* yfld0)
+__global__ void assign_foot(double* xfld0, double* yfld0)
 {
     unsigned int idx = get_idx();
     if(idx<Nz){
@@ -396,7 +396,7 @@ __global__ void assign_foot(float* xfld0, float* yfld0)
     }
 }
 
-__global__ void sl_k_damp_calc(float *Gmdamp, cuComplex* Gm, float nu_kp_g, int alpha_kp_g, float nu_kz_g, int alpha_kz_g, int m){
+__global__ void sl_k_damp_calc(double *Gmdamp, cuDoubleComplex* Gm, double nu_kp_g, int alpha_kp_g, double nu_kz_g, int alpha_kz_g, int m){
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
     unsigned int idz = get_idz();
@@ -427,7 +427,7 @@ __global__ void sl_k_damp_calc(float *Gmdamp, cuComplex* Gm, float nu_kp_g, int 
 
 }
 
-__global__ void kInit(float* kx, float* ky, float* kz) 
+__global__ void kInit(double* kx, double* ky, double* kz) 
 {
     int idx = iget_idx();
     int idz = iget_idz();
@@ -435,21 +435,21 @@ __global__ void kInit(float* kx, float* ky, float* kz)
 
     if(idy<Ny/2+1 && idx<Nx) {
 
-        ky[idy] = (float) idy/Y0;
+        ky[idy] = (double) idy/Y0;
 
         if(idx<Nx/2+1) {					
-            kx[idx] = (float) idx/X0;					
+            kx[idx] = (double) idx/X0;					
         } else {						
-            kx[idx] = (float) (idx - Nx)/X0;				
+            kx[idx] = (double) (idx - Nx)/X0;				
         }
     }
 
     if(Nz<=zThreads) { 
         if(idz<Nz) {
             if(idz<(Nz/2+1))
-                kz[idz] = (float) idz/Z0;
+                kz[idz] = (double) idz/Z0;
             else
-                kz[idz] = (float) (idz - Nz)/Z0;
+                kz[idz] = (double) (idz - Nz)/Z0;
         }	
     }
     else {
@@ -458,16 +458,16 @@ __global__ void kInit(float* kx, float* ky, float* kz)
                 int IDZ = idz + zThreads*i;
                 if(IDZ<Nz){
                     if(IDZ<(Nz/2+1))
-                        kz[IDZ] = (float) IDZ/Z0;
+                        kz[IDZ] = (double) IDZ/Z0;
                     else
-                        kz[IDZ] = (float) (IDZ - Nz)/Z0;
+                        kz[IDZ] = (double) (IDZ - Nz)/Z0;
                 }
             }
         }
     } 
 }     
 
-__global__ void kPerpInit(float* kPerp2, float* kx, float* ky)
+__global__ void kPerpInit(double* kPerp2, double* kx, double* ky)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -479,7 +479,7 @@ __global__ void kPerpInit(float* kPerp2, float* kx, float* ky)
     }
 }   
 
-__global__ void kPerpInvInit(float* kPerp2Inv, float* kPerp2)
+__global__ void kPerpInvInit(double* kPerp2Inv, double* kPerp2)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -487,17 +487,17 @@ __global__ void kPerpInvInit(float* kPerp2Inv, float* kPerp2)
     if(idy<(Ny/2+1) && idx<Nx) {
         unsigned int index = idy + (Ny/2+1)*idx;
 
-        if(index !=0) kPerp2Inv[index] = (float) 1.0f / (kPerp2[index]);  
+        if(index !=0) kPerp2Inv[index] = (double) 1.0f / (kPerp2[index]);  
 
     }
     kPerp2Inv[0] = 0.0;
 }   
-__global__ void deriv(cuComplex* f, cuComplex* fdx, cuComplex* fdy)                        
+__global__ void deriv(cuDoubleComplex* f, cuDoubleComplex* fdx, cuDoubleComplex* fdy)                        
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
     unsigned int idz = get_idz();
-    cuComplex cj; cj.x = 0.0f; cj.y = 1.0f;
+    cuDoubleComplex cj; cj.x = 0.0f; cj.y = 1.0f;
 
     if(Nz<=zThreads) {
         if(idy<(Ny/2+1) && idx<Nx && idz<Nz) {
@@ -525,7 +525,7 @@ __global__ void deriv(cuComplex* f, cuComplex* fdx, cuComplex* fdy)
     } 
 }  
 
-__global__ void mask(cuComplex* mult) 
+__global__ void mask(cuDoubleComplex* mult) 
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -558,8 +558,8 @@ __global__ void mask(cuComplex* mult)
 
 
 
-__global__ void bracket(float* mult, float* fdx, float* fdy, 
-        float* gdx, float* gdy, float scaler)
+__global__ void bracket(double* mult, double* fdx, double* fdy, 
+        double* gdx, double* gdy, double scaler)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -583,10 +583,10 @@ __global__ void bracket(float* mult, float* fdx, float* fdy,
     } 
 
 }  
-__global__ void sum(cuComplex* result, cuComplex* a)
+__global__ void sum(cuDoubleComplex* result, cuDoubleComplex* a)
 {
-    //shared mem size = 8*8*8*sizeof(cuComplex)
-    extern __shared__ cuComplex result_s[];
+    //shared mem size = 8*8*8*sizeof(cuDoubleComplex)
+    extern __shared__ cuDoubleComplex result_s[];
     //tid up to blockDim.x*blockDim.y*blockDim.z = 8*8*8
     int tid = threadIdx.x + blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
 
@@ -612,10 +612,10 @@ __global__ void sum(cuComplex* result, cuComplex* a)
     }
 }
 
-__global__ void sum(float* result, float* a)
+__global__ void sum(double* result, double* a)
 {
-    //shared mem size = 8*8*8*sizeof(cuComplex)
-    extern __shared__ float result_s_real[];
+    //shared mem size = 8*8*8*sizeof(cuDoubleComplex)
+    extern __shared__ double result_s_real[];
     //tid up to blockDim.x*blockDim.y*blockDim.z = 8*8*8
     int tid = threadIdx.x + blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
 
@@ -638,10 +638,10 @@ __global__ void sum(float* result, float* a)
     }
 }
 
-__global__ void maximum(cuComplex* result, cuComplex* a)
+__global__ void maximum(cuDoubleComplex* result, cuDoubleComplex* a)
 {
-    //shared mem size = 8*8*8*sizeof(cuComplex)
-    extern __shared__ cuComplex result_s[];
+    //shared mem size = 8*8*8*sizeof(cuDoubleComplex)
+    extern __shared__ cuDoubleComplex result_s[];
     //tid up to blockDim.x*blockDim.y*blockDim.z = 8*8*8
     int tid = threadIdx.x + blockDim.x*threadIdx.y + blockDim.x*blockDim.y*threadIdx.z;
 
@@ -672,12 +672,12 @@ __global__ void maximum(cuComplex* result, cuComplex* a)
     }
 }
 
-__global__ void linstep(cuComplex* fNew, cuComplex* fOld, float dt)
+__global__ void linstep(cuDoubleComplex* fNew, cuDoubleComplex* fOld, double dt)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
     unsigned int idz = get_idz();
-    cuComplex cj;
+    cuDoubleComplex cj;
     cj.x = 0.0f;
     cj.y = 1.0f;
 
@@ -704,7 +704,7 @@ __global__ void linstep(cuComplex* fNew, cuComplex* fOld, float dt)
 }
 
 
-__global__ void fwdeuler(cuComplex* fNew, cuComplex* nl, float dt)
+__global__ void fwdeuler(cuDoubleComplex* fNew, cuDoubleComplex* nl, double dt)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -730,7 +730,7 @@ __global__ void fwdeuler(cuComplex* fNew, cuComplex* nl, float dt)
     }     
 }
 
-__global__ void fwdeuler(float* fNew, float* nl, float dt)
+__global__ void fwdeuler(double* fNew, double* nl, double dt)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -758,7 +758,7 @@ __global__ void fwdeuler(float* fNew, float* nl, float dt)
 
 
 // Multiply array by kperp**2
-__global__ void multKPerp(cuComplex* fK, cuComplex* f, float scaler)
+__global__ void multKPerp(cuDoubleComplex* fK, cuDoubleComplex* f, double scaler)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -783,7 +783,7 @@ __global__ void multKPerp(cuComplex* fK, cuComplex* f, float scaler)
         }
     }
 }       
-__global__ void multKPerpInv(cuComplex* fK, cuComplex* f)
+__global__ void multKPerpInv(cuDoubleComplex* fK, cuDoubleComplex* f)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -811,7 +811,7 @@ __global__ void multKPerpInv(cuComplex* fK, cuComplex* f)
 }       
 
 // Multiply array by kx
-__global__ void multKx(cuComplex* fK, cuComplex* f) 
+__global__ void multKx(cuDoubleComplex* fK, cuDoubleComplex* f) 
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -838,7 +838,7 @@ __global__ void multKx(cuComplex* fK, cuComplex* f)
 }   
 
 // Multiply array by ky
-__global__ void multKy(cuComplex* fK, cuComplex* f) 
+__global__ void multKy(cuDoubleComplex* fK, cuDoubleComplex* f) 
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -867,7 +867,7 @@ __global__ void multKy(cuComplex* fK, cuComplex* f)
 }           
 
 // Add, subtract arrays
-__global__ void addsubt(cuComplex* result, cuComplex* f, cuComplex* g, float a)
+__global__ void addsubt(cuDoubleComplex* result, cuDoubleComplex* f, cuDoubleComplex* g, double a)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -891,7 +891,7 @@ __global__ void addsubt(cuComplex* result, cuComplex* f, cuComplex* g, float a)
     }
 }           
 // Multiply arrays C = A*B
-__global__ void mult(float* C, float* A, float* B)
+__global__ void mult(double* C, double* A, double* B)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -914,20 +914,20 @@ __global__ void mult(float* C, float* A, float* B)
     }
 }
 // Square root
-__global__ void squareroot(float* A)
+__global__ void squareroot(double* A)
 {
     unsigned int idx = get_idx();
     A[idx] = sqrt(A[idx]);
 }
 // Divide arrays : C[index] = A[index]/B[index] if B[index]!=0
-__global__ void divide(float* C, float* A, float* B)
+__global__ void divide(double* C, double* A, double* B)
 {
     unsigned int index = get_idx();
     if(abs(B[index]) > 1.e-8) C[index] = A[index]/B[index];
     else C[index] = 0.0f;
 }
 // Square a real array and save it in f[].x
-__global__ void square(float* f)
+__global__ void square(double* f)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -951,7 +951,7 @@ __global__ void square(float* f)
     }
 }    
 // Square a complex array and save it in f[].x
-__global__ void squareComplex(cuComplex* f)
+__global__ void squareComplex(cuDoubleComplex* f)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -977,7 +977,7 @@ __global__ void squareComplex(cuComplex* f)
     }
 }    
 // Fix fft
-__global__ void fixFFT(cuComplex* f)
+__global__ void fixFFT(cuDoubleComplex* f)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -1006,7 +1006,7 @@ __global__ void fixFFT(cuComplex* f)
 // Scale operations
 ////////////////////////////////////////
 // Scale a complex array by a real number
-__global__ void scale(cuComplex* b, float scaler)
+__global__ void scale(cuDoubleComplex* b, double scaler)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -1033,7 +1033,7 @@ __global__ void scale(cuComplex* b, float scaler)
     }    	
 } 
 // Scale a real array by a real number
-__global__ void scale(float* b, float scaler)
+__global__ void scale(double* b, double scaler)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -1058,7 +1058,7 @@ __global__ void scale(float* b, float scaler)
     }    	
 } 
 // Scale a complex array by a real number and save it in result
-__global__ void scale(cuComplex* result, cuComplex* b, float scaler)
+__global__ void scale(cuDoubleComplex* result, cuDoubleComplex* b, double scaler)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -1086,7 +1086,7 @@ __global__ void scale(cuComplex* result, cuComplex* b, float scaler)
 } 
 
 //copies f(ky[i]) into fky
-__global__ void kycopy(cuComplex* fky, cuComplex* f, int i) {
+__global__ void kycopy(cuDoubleComplex* fky, cuDoubleComplex* f, int i) {
 
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -1101,7 +1101,7 @@ __global__ void kycopy(cuComplex* fky, cuComplex* f, int i) {
 /////////////////////////////////////////
 // Zeroing out arrays
 /////////////////////////////////////////
-__global__ void zero(cuComplex* f, int nx, int ny, int nz) 
+__global__ void zero(cuDoubleComplex* f, int nx, int ny, int nz) 
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -1127,7 +1127,7 @@ __global__ void zero(cuComplex* f, int nx, int ny, int nz)
     }    
 }    
 
-__global__ void zero(float* f, int nx, int ny, int nz) 
+__global__ void zero(double* f, int nx, int ny, int nz) 
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
@@ -1151,13 +1151,13 @@ __global__ void zero(float* f, int nx, int ny, int nz)
     }    
 }    
 
-__global__ void zderiv(cuComplex* result, cuComplex* f)
+__global__ void zderiv(cuDoubleComplex* result, cuDoubleComplex* f)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
     unsigned int idz = get_idz();
 
-    cuComplex res, cj;
+    cuDoubleComplex res, cj;
     cj.x = 0.0f;
     cj.y = 1.0f;
     if(Nz<=zThreads) {
@@ -1180,7 +1180,7 @@ __global__ void zderiv(cuComplex* result, cuComplex* f)
     }    	
 } 
 
-__global__ void absk_closure(cuComplex* f, float scaler)
+__global__ void absk_closure(cuDoubleComplex* f, double scaler)
 {
     unsigned int idx = get_idx();
     unsigned int idy = get_idy();
