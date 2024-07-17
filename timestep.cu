@@ -1,11 +1,11 @@
 // Nonlinear timestepping routine using Noah's trick
-void alf_adv(cuComplex *zpNew, 
-        cuComplex *zpOld, 
-        cuComplex *zpstar, 
-        cuComplex *zmNew, 
-        cuComplex *zmOld, 
-        cuComplex *zmstar, 
-        float dt) {
+void alf_adv(cuDoubleComplex *zpNew, 
+        cuDoubleComplex *zpOld, 
+        cuDoubleComplex *zpstar, 
+        cuDoubleComplex *zmNew, 
+        cuDoubleComplex *zmOld, 
+        cuDoubleComplex *zmstar, 
+        double dt) {
 
     if (nlrun) {
         // temp1 = {zp, -kperp**2 *zm} + {zm, -kperp**2 zp}, temp2 = -kperp**2{zp,zm}
@@ -55,7 +55,7 @@ void alf_adv(cuComplex *zpNew,
 }
 
 // Timestepping routine for alfven, nonlinear, nondebug
-void advance(cuComplex *zpNew, cuComplex *zpOld, cuComplex *zmNew, cuComplex *zmOld, float dt, int istep) {
+void advance(cuDoubleComplex *zpNew, cuDoubleComplex *zpOld, cuDoubleComplex *zmNew, cuDoubleComplex *zmOld, double dt, int istep) {
 
     if(driven && istep%nforce==0){
 
