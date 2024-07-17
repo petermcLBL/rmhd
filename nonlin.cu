@@ -1,5 +1,5 @@
 #include "nlps.cu"
-void nonlin( cuComplex *zpOld, cuComplex *zmOld, cuComplex *bracket1, cuComplex *bracket2, cuComplex* zK)
+void nonlin( cuDoubleComplex *zpOld, cuDoubleComplex *zmOld, cuDoubleComplex *bracket1, cuDoubleComplex *bracket2, cuDoubleComplex* zK)
 {
     //1) zK = -kPerp2*zmOld
     multKPerp <<<dG,dB>>> (zK, zmOld, 1);
