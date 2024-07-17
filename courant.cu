@@ -1,11 +1,11 @@
-void courant(float* dt,  cuDoubleComplex* zp, cuDoubleComplex* zm)
+void courant(double* dt,  cuDoubleComplex* zp, cuDoubleComplex* zm)
 {
     zero <<<dG, dB>>> (padded, Nx, Ny, Nz);
 
     cuDoubleComplex *max;
     max = (cuDoubleComplex*) malloc(sizeof(cuDoubleComplex));
 
-    float vxmax, vymax, omega_zmax;
+    double vxmax, vymax, omega_zmax;
 
     vxmax = 0.f;
     vymax = 0.f;
@@ -63,15 +63,15 @@ void courant(float* dt,  cuDoubleComplex* zp, cuDoubleComplex* zm)
 
     /////////////////////////////////////////////////////////
     // omega_zmax
-    omega_zmax =  ((float) (Nz-1)/3)/(Z0*cfl);
+    omega_zmax =  ((double) (Nz-1)/3)/(Z0*cfl);
 
     /////////////////////////////////////////////////////////
 
     //find dt
 
     if (vxmax==vxmax || vymax==vymax) {
-        if(vxmax>=vymax) *dt = (float) cfl *M_PI*X0/(vxmax*Nx);
-        else *dt = (float) cfl*M_PI*Y0/(vymax*Ny);
+        if(vxmax>=vymax) *dt = (double) cfl *M_PI*X0/(vxmax*Nx);
+        else *dt = (double) cfl*M_PI*Y0/(vymax*Ny);
     }
     //  if(1.0/(*dt) <  omega_zmax) *dt = 1.0f/(omega_zmax);
     if(*dt >  maxdt) *dt = maxdt;
