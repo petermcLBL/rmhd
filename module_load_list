@@ -1,0 +1,18 @@
+module load craype-x86-milan
+module load libfabric/1.15.2.0
+module load craype-network-ofi
+module load xpmem/2.6.2-2.5_2.38__gd067c3f.shasta
+module load PrgEnv-gnu/8.5.0
+module load cray-dsmml/0.2.2
+module load cray-libsci/23.12.5
+module load cray-mpich/8.1.28
+module load craype/2.7.30
+module load gcc-native/12.3
+module load perftools-base/23.12.0
+module load cpe/23.12
+module load cudatoolkit/12.2
+module load craype-accel-nvidia80
+module load gpu/1.0
+module load cray-hdf5-parallel/1.12.2.9
+module load cray-netcdf-hdf5parallel/4.9.0.9
+
