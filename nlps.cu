@@ -83,7 +83,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     // perform transform
     r2c_prob.transform();
     
-    scale <<<dG,dB>>> (result,1.0f/((float) Nx*Ny*Nz));
+    scale <<<dG,dB>>> (result,1.0f/((double) Nx*Ny*Nz));
 
     // Dealias
     mask <<<dG,dB>>> (result);
