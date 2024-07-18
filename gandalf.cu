@@ -101,6 +101,15 @@ cufftHandle plan_C2R, plan_R2C, plan2d_C2R;
 IMDPRDFTProblem c2r_prob("imdprdft");
 MDPRDFTProblem r2c_prob("mdprdft");
 
+// nb changed 2024/07/18
+/*
+fftx::global_ptr fftx_dx();
+fftx::global_ptr fftx_dy();
+fftx::global_ptr fftx_fdxR();
+fftx::global_ptr fftx_fdyR();
+fftx::global_ptr fftx_gdxR();
+fftx::global_ptr fftx_gdyR();
+*/
 // NetCDF info
 
 struct NetCDF_ids {
@@ -290,7 +299,7 @@ int main(int argc, char* argv[]) {
         printf("Done.\n");
 
 
-        double elapsed_time;
+        float elapsed_time;
         cudaEventRecord(stop, 0);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&elapsed_time, start, stop);
@@ -623,7 +632,29 @@ void allocate_arrays()
     cudaMalloc((void**) &dy, Nkc);
 
     cudaMalloc((void**) &padded, sizeof(cuDoubleComplex)*Nx*Ny*Nz);
+    
+    // nb changed 2024/07/18
+    /*
+    fftx_dx(dx);
+    fftx_dy(dy);
+    fftx_fdxR(fdxR);
+    fftx_fdyR(fdyR);
+    fftx_gdxR(gdxR);
+    fftx_gdyR(gdyR);
+    //
+    //making box objects of correct sizes
+    fftx::box_t<3> domain ( point_t<3> ( { { 1, 1, 1 } } ),
+                            point_t<3> ( { { mm, nn, kk } } ));
+    fftx::box_t<3> outputd ( point_t<3> ( { { 1, 1, 1 } } ),
+                            point_t<3> ( { { mm, nn, K_adj } } ));
 
+    // still unsure -?
+    fftx::array_t<3,double> inputHost(domain);
+    fftx::array_t<3,std::complex<double>> outputHost(outputd);
+    fftx::array_t<3,double> outputHost2(domain);
+    fftx::array_t<3,std::complex<double>> outDevfft1(outputd);
+    fftx::array_t<3,double> outDevfft2(domain);
+    */
 }
 void destroy_arrays(){
 
@@ -825,4 +856,5 @@ void finit(cuDoubleComplex *f, cuDoubleComplex *g)
     }
 
 }
+
 

@@ -16,6 +16,8 @@ void fft_plan_destroy()
 
 void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
 {
+    // nb changed 2024/07/17
+    
     // nb changed 2024/07/08
     //https://spiral-software.github.io/fftx/apis.html#fftxproblem
         //printf("NLPS hit\n");
@@ -26,7 +28,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     std::vector<int> zxySizes{Nz, Nx, Ny};
     
     c2r_prob.setSizes(zxySizes);
-    printf("setSizes hit\n");
+        //printf("setSizes hit\n");
     /*
     Array of length 3 that contains the following.
     args[0]: pointer to output array.
@@ -35,10 +37,13 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     */
     //the CUDA code executes across X and Y separately, FFTX appears to do both together
     // do we need 6?
-    std::vector<void*> args_C2R_fy{&fdyR, &dy}, args_C2R_fx{&fdxR, &dx},
-        args_C2R_gy{&gdyR, &dy}, args_C2R_gx{&gdxR, &dx},
-        args_in_R2C{&result, &fdxR};
-    printf("args vector assigned\n");
+    std::vector<void*> args_C2R_fy{&fdyR, &dy, NULL}, 
+        args_C2R_fx{&fdxR, &dx, NULL},
+        args_C2R_gy{&gdyR, &dy, NULL}, 
+        args_C2R_gx{&gdxR, &dx, NULL},
+        args_in_R2C{&result, &fdxR, NULL};
+
+        //printf("args vector assigned\n");
     GRADIENT (f, dx, dy);
 /*
     //printf("return code: %i \n", cufftExecZ2D(plan_C2R, dy, fdyR));
@@ -48,6 +53,31 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     // type of transform = complex-to-real
     //c2r_prob.setName("imdprdft");
     
+    int mm = Nx, nn = Ny, kk = Nz;
+    int K_adj = (int) ( kk / 2 ) + 1;
+    
+    fftx::box_t<3> c2r_dom ( point_t<3> ( { { 1, 1, 1 } } ),
+                            point_t<3> ( { { mm, nn, K_adj } } ));
+
+    fftx::array_t<3,double> inputHost(c2r_dom);
+    
+    double *sampX;
+    std::complex<double> * tempX;
+
+    DEVICE_MALLOC(&sampX, inputHost.m_domain.size() * sizeof(double));
+    DEVICE_MALLOC(&tempX, mm * nn * K_adj * sizeof(std::complex<double>));
+    
+    std::vector<void*> args{&tempX,&sampX,NULL};
+    
+    printf("IMDPRDFTProblem hit\n");
+    IMDPRDFTProblem imdp("imdprdft");
+    imdp.setArgs(args);
+    imdp.setSizes(zxySizes);
+    printf("IMDPRDFTProblem created\n");
+    imdp.transform();
+    printf("IMDPRDFTProblem finished in %d\n",imdp.getTime());
+
+
     // set i/o location, use f on dy
     c2r_prob.setArgs(args_C2R_fy);
     printf("setArgs hit\n");
