@@ -37,11 +37,13 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     */
     //the CUDA code executes across X and Y separately, FFTX appears to do both together
     // do we need 6?
-    std::vector<void*> args_C2R_fy{&fdyR, &dy, NULL}, 
-        args_C2R_fx{&fdxR, &dx, NULL},
-        args_C2R_gy{&gdyR, &dy, NULL}, 
-        args_C2R_gx{&gdxR, &dx, NULL},
-        args_in_R2C{&result, &fdxR, NULL};
+    CUdeviceptr symbolPtr = (CUdeviceptr) NULL; 
+    
+    std::vector<void*> args_C2R_fy{&fdyR, &dy, &symbolPtr}, 
+        args_C2R_fx{&fdxR, &dx, &symbolPtr},
+        args_C2R_gy{&gdyR, &dy, &symbolPtr}, 
+        args_C2R_gx{&gdxR, &dx, &symbolPtr},
+        args_in_R2C{&result, &fdxR, &symbolPtr};
 
         //printf("args vector assigned\n");
     GRADIENT (f, dx, dy);
@@ -55,24 +57,42 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     
     int mm = Nx, nn = Ny, kk = Nz;
     int K_adj = (int) ( kk / 2 ) + 1;
+    std::vector<int> sizes{mm,nn,kk};
     
-    fftx::box_t<3> c2r_dom ( point_t<3> ( { { 1, 1, 1 } } ),
+    fftx::box_t<3> domain ( point_t<3> ( { { 1, 1, 1 } } ),
+                            point_t<3> ( { { mm, nn, kk } } ));
+    fftx::box_t<3> outputd ( point_t<3> ( { { 1, 1, 1 } } ),
                             point_t<3> ( { { mm, nn, K_adj } } ));
 
-    fftx::array_t<3,double> inputHost(c2r_dom);
+    fftx::array_t<3,double> inputHost(domain);
+    fftx::array_t<3,std::complex<double>> outputHost(outputd);
+    fftx::array_t<3,double> outputHost2(domain);
+    fftx::array_t<3,std::complex<double>> outDevfft1(outputd);
+    fftx::array_t<3,double> outDevfft2(domain);
     
-    double *sampX;
+    double *sampX, *sampY, *sampsym;
     std::complex<double> * tempX;
 
     DEVICE_MALLOC(&sampX, inputHost.m_domain.size() * sizeof(double));
     DEVICE_MALLOC(&tempX, mm * nn * K_adj * sizeof(std::complex<double>));
     
-    std::vector<void*> args{&tempX,&sampX,NULL};
+    DEVICE_MALLOC(&sampX, inputHost.m_domain.size() * sizeof(double));
+    DEVICE_MALLOC(&sampY, outputHost2.m_domain.size() * sizeof(double));
+    DEVICE_MALLOC(&sampsym,  outputHost.m_domain.size() * sizeof(double));
+    DEVICE_MALLOC(&tempX, mm * nn * K_adj * sizeof(std::complex<double>));
+
+    std::vector<void*> args{&tempX,&sampX,&symbolPtr};
+
+    printf("MDPRDFTProblem hit\n");
+    MDPRDFTProblem mdp(args, sizes, "mdprdft");
+    printf("MDPRDFTProblem created\n");
+    mdp.transform();
+    printf("MDPRDFTProblem finished in %d\n",mdp.getTime());
     
     printf("IMDPRDFTProblem hit\n");
     IMDPRDFTProblem imdp("imdprdft");
     imdp.setArgs(args);
-    imdp.setSizes(zxySizes);
+    imdp.setSizes(sizes);
     printf("IMDPRDFTProblem created\n");
     imdp.transform();
     printf("IMDPRDFTProblem finished in %d\n",imdp.getTime());
