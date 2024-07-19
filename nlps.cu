@@ -20,23 +20,23 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     // nb changed 2024/07/08
     //https://spiral-software.github.io/fftx/apis.html#fftxproblem
         //printf("NLPS hit\n");
-    /*
-    Size of transform, as a std::vector<int> of length equal to the dimension, 
-    with the component in each coordinate direction representing the transform size in that direction. 
-    */
+    //Size of transform, as a std::vector<int> of length equal to the dimension, 
+    //with the component in each coordinate direction representing the transform size in that direction. 
+
     std::vector<int> zxySizes{Nz, Nx, Ny};
     
     c2r_prob.setSizes(zxySizes);
     r2c_prob.setSizes(zxySizes);
         //printf("setSizes hit\n");
-    /*
-    Array of length 3 that contains the following.
-    args[0]: pointer to output array.
-    args[1]: pointer to input array.
-    args[2]: pointer to symbol array (not used by all transforms).
-    */
+
+    //Array of length 3 that contains the following.
+    //args[0]: pointer to output array.
+    //args[1]: pointer to input array.
+    //args[2]: pointer to symbol array (not used by all transforms).
+
     //the CUDA code executes across X and Y separately, FFTX appears to do both together
     // do we need 6?
+
     CUdeviceptr symbolPtr = (CUdeviceptr) NULL; 
     
     std::vector<void*> args_C2R_fy{&fdyR, &dy, &symbolPtr}, 
@@ -46,6 +46,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
         args_in_R2C{&result, &fdxR, &symbolPtr};
 
         //printf("args vector assigned\n");
+
     GRADIENT (f, dx, dy);
 /*
     //printf("return code: %i \n", cufftExecZ2D(plan_C2R, dy, fdyR));
