@@ -16,8 +16,7 @@ void fft_plan_destroy()
 
 void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
 {
-    // nb changed 2024/07/17
-    
+
     // nb changed 2024/07/08
     //https://spiral-software.github.io/fftx/apis.html#fftxproblem
         //printf("NLPS hit\n");
@@ -28,6 +27,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     std::vector<int> zxySizes{Nz, Nx, Ny};
     
     c2r_prob.setSizes(zxySizes);
+    r2c_prob.setSizes(zxySizes);
         //printf("setSizes hit\n");
     /*
     Array of length 3 that contains the following.
@@ -55,6 +55,8 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     // type of transform = complex-to-real
     //c2r_prob.setName("imdprdft");
     
+        // nb changed 2024/07/17
+/*    
     int mm = Nx, nn = Ny, kk = Nz;
     int K_adj = (int) ( kk / 2 ) + 1;
     std::vector<int> sizes{mm,nn,kk};
@@ -83,32 +85,34 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
 
     std::vector<void*> args{&tempX,&sampX,&symbolPtr};
 
-    printf("MDPRDFTProblem hit\n");
+    //printf("MDPRDFTProblem hit\n");
     MDPRDFTProblem mdp(args, sizes, "mdprdft");
-    printf("MDPRDFTProblem created\n");
+    //printf("MDPRDFTProblem created\n");
     mdp.transform();
-    printf("MDPRDFTProblem finished in %d\n",mdp.getTime());
+    printf("MDPRDFTProblem finished in %f\n",mdp.getTime());
     
-    printf("IMDPRDFTProblem hit\n");
+    //printf("IMDPRDFTProblem hit\n");
     IMDPRDFTProblem imdp("imdprdft");
     imdp.setArgs(args);
     imdp.setSizes(sizes);
-    printf("IMDPRDFTProblem created\n");
+    //printf("IMDPRDFTProblem created\n");
     imdp.transform();
-    printf("IMDPRDFTProblem finished in %d\n",imdp.getTime());
-
+    printf("IMDPRDFTProblem finished in %f\n",imdp.getTime());
+*/
 
     // set i/o location, use f on dy
     c2r_prob.setArgs(args_C2R_fy);
-    printf("setArgs hit\n");
+    //printf("setArgs 1 hit\n");
     // perform transform
     c2r_prob.transform();
-    printf("transform hit\n");
+    //printf("c2r_prob 1 finished in %f\n",c2r_prob.getTime());
     
     // set i/o location, use f on dx
     c2r_prob.setArgs(args_C2R_fx);
+    //printf("setArgs 2 hit\n");
     // perform transform
     c2r_prob.transform();
+    //printf("c2r_prob 2 finished in %f\n",c2r_prob.getTime());
    
     GRADIENT (g, dx, dy);
 /*
@@ -117,13 +121,17 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
 */
     // set i/o location, use g on dy
     c2r_prob.setArgs(args_C2R_gy);
+    //printf("setArgs 3 hit\n");
     // perform transform
     c2r_prob.transform();
+    //printf("c2r_prob 3 finished in %f\n",c2r_prob.getTime());
     
     // set i/o location, use g on dx
     c2r_prob.setArgs(args_C2R_gx);
+    //printf("setArgs 4 hit\n");
     // perform transform
     c2r_prob.transform();
+    //printf("c2r_prob 4 finished in %f\n",c2r_prob.getTime());
    
     // Reuse fdxR as result 
     bracket <<<dG,dB>>> (fdxR, fdxR, fdyR, gdxR, gdyR, 1.0);
@@ -134,13 +142,16 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     //r2c_prob.setName("mdprdft");
     // set i/o location, "reuse fdxR as result" sent to result
     r2c_prob.setArgs(args_in_R2C);
+    //printf("setArgs 5 hit\n");
     // perform transform
     r2c_prob.transform();
+    //printf("r2c_prob 1 finished in %f\n",r2c_prob.getTime());
    
-    scale <<<dG,dB>>> (result,1.0f/((double) Nx*Ny*Nz));
-
+    scale <<<dG,dB>>> (result, 1.0/((double) Nx*Ny*Nz));
+    //printf("scale hit\n");
     // Dealias
     mask <<<dG,dB>>> (result);
+    //printf("mask hit\n");
 }
 
 
