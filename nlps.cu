@@ -57,7 +57,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     //c2r_prob.setName("imdprdft");
     
         // nb changed 2024/07/17
-/*    
+/*    // TEST CODE FROM FFTX EXAMPLE, CAN BE DELETED WHENEVER
     int mm = Nx, nn = Ny, kk = Nz;
     int K_adj = (int) ( kk / 2 ) + 1;
     std::vector<int> sizes{mm,nn,kk};
@@ -114,7 +114,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     // perform transform
     c2r_prob.transform();
     //printf("c2r_prob 2 finished in %f\n",c2r_prob.getTime());
-   
+ 
     GRADIENT (g, dx, dy);
 /*
     if(cufftExecZ2D(plan_C2R, dy, gdyR) != CUFFT_SUCCESS) printf("gdyR calculation failed.  \n");
@@ -133,7 +133,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     // perform transform
     c2r_prob.transform();
     //printf("c2r_prob 4 finished in %f\n",c2r_prob.getTime());
-   
+
     // Reuse fdxR as result 
     bracket <<<dG,dB>>> (fdxR, fdxR, fdyR, gdxR, gdyR, 1.0);
 /*
@@ -147,7 +147,7 @@ void NLPS(cuDoubleComplex *result, cuDoubleComplex *f, cuDoubleComplex *g)
     // perform transform
     r2c_prob.transform();
     //printf("r2c_prob 1 finished in %f\n",r2c_prob.getTime());
-   
+
     scale <<<dG,dB>>> (result, 1.0/((double) Nx*Ny*Nz));
     //printf("scale hit\n");
     // Dealias

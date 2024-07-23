@@ -165,7 +165,7 @@ void peak(cuDoubleComplex* kPhi, double time)
     double *rPhi;
     cudaMalloc((void**) &rPhi, sizeof(double)*Nx*Ny*Nz);
 
-    if(cufftExecC2R(plan_C2R, kPhi, rPhi) != CUFFT_SUCCESS) printf("oops in peak \n");
+    if(cufftExecZ2D(plan_C2R, kPhi, rPhi) != CUFFT_SUCCESS) printf("oops in peak \n");
 
     double *rPhi_h;
     rPhi_h = (double*) malloc(sizeof(double)*Nx*Ny*Nz);
@@ -223,7 +223,7 @@ void j_z_diag( cuDoubleComplex * A, double time, int jstep, struct NetCDF_ids id
 
     // Now have -k_perp^2 Psi = (const) * j_z
 
-    if(cufftExecC2R(plan_C2R, A, fdxR ) != CUFFT_SUCCESS) printf("Inverse FFT for diagnostics failed. \n");	
+    if(cufftExecZ2D(plan_C2R, A, fdxR ) != CUFFT_SUCCESS) printf("Inverse FFT for diagnostics failed. \n");	
 
 	 size_t Nf = Nx * Ny * Nz;
     double *j_z_data = (double*)malloc( sizeof(double) * Nf );
@@ -327,8 +327,8 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
     //  int ikpmax = (int) ceil( sqrt( pow((double)(Nx-1)/3, 2) + pow((double)(Ny-1)/3, 2) ) );
     //  double kpmax = ceil( sqrt( pow((double)(Nx-1)/3, 2) + pow((double)(Ny-1)/3, 2) ) );
     int ikpmax = (int) (Nx-1)/3;
-    double kpmax = (double) (Nx-1)/3;
-    double kpar[Nz], kperp[ikpmax];
+    float kpmax = (float) (Nx-1)/3;
+    float kpar[Nz], kperp[ikpmax];
 
     strcpy(str, runname);
     strcat(str, ".nc");
@@ -342,15 +342,15 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
 
     if (retval = nc_def_dim(id.file, "kx",   Nx,      &id.kx_dim))     ERR(retval);
     if (retval = nc_def_dim(id.file, "ky",   Ny/2+1,  &id.ky_dim))     ERR(retval);
-    if (retval = nc_def_var(id.file, "kx", NC_double, 1, &id.kx_dim, &id.kx_vals)) ERR(retval);
-    if (retval = nc_def_var(id.file, "ky", NC_double, 1, &id.ky_dim, &id.ky_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "kx", NC_DOUBLE, 1, &id.kx_dim, &id.kx_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "ky", NC_DOUBLE, 1, &id.ky_dim, &id.ky_vals)) ERR(retval);
 
     if (retval = nc_def_dim(id.file, "x",   Nx,  &id.x_dim))     ERR(retval);
     if (retval = nc_def_dim(id.file, "y",   Ny,  &id.y_dim))     ERR(retval);
     if (retval = nc_def_dim(id.file, "z",   Nz,  &id.z_dim))     ERR(retval);
-    if (retval = nc_def_var(id.file, "x", NC_double, 1, &id.x_dim, &id.x_vals)) ERR(retval);
-    if (retval = nc_def_var(id.file, "y", NC_double, 1, &id.y_dim, &id.y_vals)) ERR(retval);
-    if (retval = nc_def_var(id.file, "z", NC_double, 1, &id.z_dim, &id.z_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "x", NC_DOUBLE, 1, &id.x_dim, &id.x_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "y", NC_DOUBLE, 1, &id.y_dim, &id.y_vals)) ERR(retval);
+    if (retval = nc_def_var(id.file, "z", NC_DOUBLE, 1, &id.z_dim, &id.z_vals)) ERR(retval);
 
 
 
@@ -372,36 +372,36 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
     if (retval = nc_def_var(id.file, "Ny", NC_INT, 0, 0, &id.ny)) ERR(retval);
     if (retval = nc_def_var(id.file, "Nz", NC_INT, 0, 0, &id.nz)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "x0", NC_double, 0, 0, &id.x0)) ERR(retval);
-    if (retval = nc_def_var(id.file, "y0", NC_double, 0, 0, &id.y0)) ERR(retval);
-    if (retval = nc_def_var(id.file, "z0", NC_double, 0, 0, &id.z0)) ERR(retval);
+    if (retval = nc_def_var(id.file, "x0", NC_DOUBLE, 0, 0, &id.x0)) ERR(retval);
+    if (retval = nc_def_var(id.file, "y0", NC_DOUBLE, 0, 0, &id.y0)) ERR(retval);
+    if (retval = nc_def_var(id.file, "z0", NC_DOUBLE, 0, 0, &id.z0)) ERR(retval);
 
     if (retval = nc_def_var(id.file, "nsteps", NC_INT, 0, 0, &id.nsteps)) ERR(retval);
-    if (retval = nc_def_var(id.file, "t", NC_double, 1, &id.t_dim, &id.t)) ERR(retval);
+    if (retval = nc_def_var(id.file, "t", NC_DOUBLE, 1, &id.t_dim, &id.t)) ERR(retval);
     // should put text attribute "Time"
     // should put text attribute "Units"
 
     if (retval = nc_def_var(id.file, "nwrite", NC_INT, 0, 0, &id.nwrite)) ERR(retval);
     if (retval = nc_def_var(id.file, "nforce", NC_INT, 0, 0, &id.nforce)) ERR(retval);
-    if (retval = nc_def_var(id.file, "maxdt", NC_double, 0, 0, &id.maxdt)) ERR(retval);
-    if (retval = nc_def_var(id.file, "cfl", NC_double, 0, 0, &id.cfl)) ERR(retval);
+    if (retval = nc_def_var(id.file, "maxdt", NC_DOUBLE, 0, 0, &id.maxdt)) ERR(retval);
+    if (retval = nc_def_var(id.file, "cfl", NC_DOUBLE, 0, 0, &id.cfl)) ERR(retval);
     //  if (retval = nc_def_var(id.file, "restart_name", NC_CHAR, ?, ?, &restart_name)) ERR(retval);
 
     if (retval = nc_def_var(id.file, "alpha_z", NC_INT, 0, 0, &id.alpha_z)) ERR(retval);
     if (retval = nc_def_var(id.file, "alpha_hyper", NC_INT, 0, 0, &id.alpha_hyper)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "nu_kz", NC_double, 0, 0, &id.nu_kz)) ERR(retval);
-    if (retval = nc_def_var(id.file, "nu_hyper", NC_double, 0, 0, &id.nu_hyper)) ERR(retval);
+    if (retval = nc_def_var(id.file, "nu_kz", NC_DOUBLE, 0, 0, &id.nu_kz)) ERR(retval);
+    if (retval = nc_def_var(id.file, "nu_hyper", NC_DOUBLE, 0, 0, &id.nu_hyper)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "kperp", NC_double, 1, &id.kperp_dim, &id.kperp)) ERR(retval);
-    //  if (retval = nc_def_var(id.file, "kz",    NC_double, 1, &id.kz_dim,    &id.kz))    ERR(retval);
-    if (retval = nc_def_var(id.file, "kpar",  NC_double, 1, &id.kpar_dim,  &id.kpar))  ERR(retval);
+    if (retval = nc_def_var(id.file, "kperp", NC_DOUBLE, 1, &id.kperp_dim, &id.kperp)) ERR(retval);
+    //  if (retval = nc_def_var(id.file, "kz",    NC_DOUBLE, 1, &id.kz_dim,    &id.kz))    ERR(retval);
+    if (retval = nc_def_var(id.file, "kpar",  NC_DOUBLE, 1, &id.kpar_dim,  &id.kpar))  ERR(retval);
 
     if (retval = nc_def_var(id.file, "kpeak", NC_INT, 0, 0, &id.kpeak)) ERR(retval);
 
     if (driven) {
         if (retval = nc_def_dim(id.file, "nkstir",  nkstir, &id.stir_dim)) ERR(retval);
-        if (retval = nc_def_var(id.file, "fampl", NC_double, 0, 0, &id.fampl)) ERR(retval);
+        if (retval = nc_def_var(id.file, "fampl", NC_DOUBLE, 0, 0, &id.fampl)) ERR(retval);
 
         id.kstir[0] = id.stir_dim;
 
@@ -420,18 +420,18 @@ struct NetCDF_ids init_netcdf_diag(struct NetCDF_ids id){
     id.kparperp[1] = id.kperp_dim;
     id.kparperp[2] = id.kpar_dim;
 
-    if (retval = nc_def_var(id.file, "b2_kparkperp", NC_double, 3, id.kparperp, &id.b2)) ERR(retval);
-    if (retval = nc_def_var(id.file, "v2_kparkperp", NC_double, 3, id.kparperp, &id.v2)) ERR(retval);
+    if (retval = nc_def_var(id.file, "b2_kparkperp", NC_DOUBLE, 3, id.kparperp, &id.b2)) ERR(retval);
+    if (retval = nc_def_var(id.file, "v2_kparkperp", NC_DOUBLE, 3, id.kparperp, &id.v2)) ERR(retval);
 
-    if (retval = nc_def_var(id.file, "v2", NC_double, 1, &id.t_dim, &id.v2_tot )) ERR(retval);
-    if (retval = nc_def_var(id.file, "b2", NC_double, 1, &id.t_dim, &id.b2_tot )) ERR(retval);
+    if (retval = nc_def_var(id.file, "v2", NC_DOUBLE, 1, &id.t_dim, &id.v2_tot )) ERR(retval);
+    if (retval = nc_def_var(id.file, "b2", NC_DOUBLE, 1, &id.t_dim, &id.b2_tot )) ERR(retval);
 
     id.txyz[0] = id.t_dim;
     id.txyz[1] = id.z_dim;
     id.txyz[2] = id.x_dim;
     id.txyz[3] = id.y_dim;
 
-    if (retval = nc_def_var(id.file, "jz", NC_double, 4, id.txyz, &id.jz)) ERR(retval);
+    if (retval = nc_def_var(id.file, "jz", NC_DOUBLE, 4, id.txyz, &id.jz)) ERR(retval);
 
     if (retval = nc_enddef(id.file)) ERR(retval);
 
@@ -642,3 +642,4 @@ void aw_coll_diag(cuDoubleComplex* zp2, cuDoubleComplex* zm2, double time){
 
 
 }
+
