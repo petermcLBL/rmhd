@@ -57,6 +57,14 @@ void alf_adv(cuDoubleComplex *zpNew,
 // Timestepping routine for alfven, nonlinear, nondebug
 void advance(cuDoubleComplex *zpNew, cuDoubleComplex *zpOld, cuDoubleComplex *zmNew, cuDoubleComplex *zmOld, double dt, int istep) {
 
+    //nb changed 2024/08/02
+    // first, clear out the holding areas
+    zero <<<dG,dB>>> (tempZp, Nx, Ny/2+1, Nz);
+    zero <<<dG,dB>>> (tempZm, Nx, Ny/2+1, Nz);
+    //yes zpNew and zmNew as well, prev they were just over-written, not added to
+    zero <<<dG,dB>>> (zpNew, Nx, Ny/2+1, Nz);
+    zero <<<dG,dB>>> (zmNew, Nx, Ny/2+1, Nz);
+
     if(driven && istep%nforce==0){
 
         // Alfven wave forcing
@@ -65,12 +73,98 @@ void advance(cuDoubleComplex *zpNew, cuDoubleComplex *zpOld, cuDoubleComplex *zm
         fwdeuler <<<dG,dB>>> (zpOld, temp1, dt);
         fwdeuler <<<dG,dB>>> (zmOld, temp1, dt);
     }
-
+/*
     // Half Alfven step
     alf_adv(zpNew, zpOld, zpOld, zmNew, zmOld, zmOld, dt/2.0);
 
     // Full Alfven step
     alf_adv(zpNew, zpOld, zpNew, zmNew, zmOld, zmNew, dt);
+*/
+/*
+x(k+1) = x(k) + (dt/6)( 1*f1 + 2*f2 + 2*f3 + 1*f4)
+which is equivalent to
+x(k+1) = x(k) + (dt/6)*f1 + (dt/3)*f2 + (dt/3)*f3 + (dt/6)*4
+f1 = f(xk, tk)
+f2 = f( xk + (dt/2*f1) , tk + dt/2 )
+f3 = f( xk + (dt/2*f2) , tk + dt/2 )
+f4 = f( xk + (dt*f3) , tk + dt )
+
+xk + (dt/2*f1) already exists as
+alf_adv(zpNew, zpOld, zpOld, zmNew, zmOld, zmOld, dt/2.0);
+xk + dt*f2 already exists as
+alf_adv(zpNew, zpOld, zpNew, zmNew, zmOld, zmNew, dt);
+
+so should be able to say, since tempZp/tempZm are at zero 
+f1 = 0 + (dt/6)f1
+which would mean
+alf_adv(tempZp, zpOld, zpOld, tempZm, zmOld, zmOld, dt/6.0);
+
+I am still unclear on the point of zpStar and zmStar (args 3 and 6)
+But they are different between the the RK2 half-step and full-step
+the difference between the 2 is that zpNew/zmNew are altered by the first alf_adv!
+so they might need to be repalced with the tempZp/tempZm
+...or I could just re-use the functions as-is, since- no wait the factor is different on all of them
+i was right the first time
+tempZp/tempZm will hold the 'f' 
+
+addsubt(cuDoubleComplex* result, cuDoubleComplex* f, cuDoubleComplex* g, double a)
+use addsubt() to say
+zpNew = zpNew + tempZp * factor
+addsubt(zpNew, zpNew, tempZp, factor) i.e.
+addsubt(zpNew, zpNew, tempZp, (double)1/6)
+
+in order: 
+calc 'f1' +store in tempZp/tempZm
+alf_adv(tempZp, zpOld, zpOld, tempZm, zmOld, zmOld, dt);
+x(k-ish #1) = x(k) + (dt/6)*f1
+addsubt(zpNew, zpNew, tempZp, (double)1/6);
+addsubt(zmNew, zmNew, tempZm, (double)1/6);
+
+calc 'f2' +store in tempZp/tempZm
+alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZm, dt);
+x(k-ish #2) = x(k) + (dt/3)*f2
+addsubt(zpNew, zpNew, tempZp, (double)1/3);
+addsubt(zmNew, zmNew, tempZm, (double)1/3);
+
+alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZm, dt);
+x(k-ish #3) = x(k) + (dt/3)*f3
+addsubt(zpNew, zpNew, tempZp, (double)1/3);
+addsubt(zmNew, zmNew, tempZm, (double)1/3);
+
+alf_adv(tempZp, zpOld, zpOld, tempZm, zmOld, zmOld, dt);
+x(k-ish #4) = x(k) + (dt/6)*f4
+addsubt(zpNew, zpNew, tempZp, (double)1/6);
+addsubt(zmNew, zmNew, tempZm, (double)1/6);
+
+at this point "x(k-ish #4)" should be same value as "x(k+1)"
+i think that's all?
+*/
+    //calc 'f1' +store in tempZp/tempZm
+    alf_adv(tempZp, zpOld, zpOld, tempZm, zmOld, zmOld, dt);
+    //x(k-ish #1) = x(k) + (dt/6)*f1
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/6);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/6);
+
+    //calc 'f2' +store in tempZp/tempZm
+    alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZm, dt);
+    //x(k-ish #2) = x(k-ish #1) + (dt/3)*f2
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/3);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/3);
+
+    //calc 'f3' +store in tempZp/tempZm
+    alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZm, dt);
+    //x(k-ish #3) = x(k-ish #2) + (dt/3)*f3
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/3);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/3);
+
+    //calc 'f4' +store in tempZp/tempZm
+    alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZp, dt);
+    //x(k-ish #4) = x(k-ish #3) + (dt/6)*f4
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/6);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/6);
+
+    //at this point "x(k-ish #4)" should be same value as "x(k+1)"
+    //  i.e. zpNew/zmNew should have the same value as it did before this change
 
     // Damping
     damp_hyper <<<dG,dB>>> (zpNew, nu_hyper, alpha_hyper, dt);
@@ -83,4 +177,5 @@ void advance(cuDoubleComplex *zpNew, cuDoubleComplex *zpOld, cuDoubleComplex *zm
     CP_ON_GPU(zpOld, zpNew, Nkc);
     CP_ON_GPU(zmOld, zmNew, Nkc);
 }
+
 
