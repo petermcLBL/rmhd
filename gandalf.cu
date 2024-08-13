@@ -114,7 +114,7 @@ fftx::global_ptr fftx_gdyR();
 //nb changed 2024/08/02
 // needed to change 2nd-order runge-kutta to 4th-order runge-kutta
 // see timestep.cu -> advance() for details
-cuDoubleComplex *tempZp, *tempZm;
+cuDoubleComplex *tempZpOne, *tempZmOne, *tempZpTwo, *tempZmTwo;
     
 // NetCDF info
 
@@ -640,8 +640,10 @@ void allocate_arrays()
     cudaMalloc((void**) &padded, sizeof(cuDoubleComplex)*Nx*Ny*Nz);
     
     //nb changed 2024/08/02
-    cudaMalloc((void**) &tempZp, Nkc);
-    cudaMalloc((void**) &tempZm, Nkc);
+    cudaMalloc((void**) &tempZpOne, Nkc);
+    cudaMalloc((void**) &tempZmOne, Nkc);
+    cudaMalloc((void**) &tempZpTwo, Nkc);
+    cudaMalloc((void**) &tempZmTwo, Nkc);
 }
 void destroy_arrays(){
 
@@ -666,7 +668,8 @@ void destroy_arrays(){
     cudaFree(padded);
     
     //nb changed 2024/08/02
-    cudaFree(tempZp); cudaFree(tempZm);
+    cudaFree(tempZpOne); cudaFree(tempZmOne);
+    cudaFree(tempZpTwo); cudaFree(tempZmTwo);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -846,6 +849,7 @@ void finit(cuDoubleComplex *f, cuDoubleComplex *g)
     }
 
 }
+
 
 
 

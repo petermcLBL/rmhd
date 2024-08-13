@@ -59,8 +59,10 @@ void advance(cuDoubleComplex *zpNew, cuDoubleComplex *zpOld, cuDoubleComplex *zm
 
     //nb changed 2024/08/02
     // first, clear out the holding areas
-    zero <<<dG,dB>>> (tempZp, Nx, Ny/2+1, Nz);
-    zero <<<dG,dB>>> (tempZm, Nx, Ny/2+1, Nz);
+    zero <<<dG,dB>>> (tempZpOne, Nx, Ny/2+1, Nz);
+    zero <<<dG,dB>>> (tempZmOne, Nx, Ny/2+1, Nz);
+    zero <<<dG,dB>>> (tempZpTwo, Nx, Ny/2+1, Nz);
+    zero <<<dG,dB>>> (tempZmTwo, Nx, Ny/2+1, Nz);
     //yes zpNew and zmNew as well, prev they were just over-written, not added to
     zero <<<dG,dB>>> (zpNew, Nx, Ny/2+1, Nz);
     zero <<<dG,dB>>> (zmNew, Nx, Ny/2+1, Nz);
@@ -81,6 +83,12 @@ void advance(cuDoubleComplex *zpNew, cuDoubleComplex *zpOld, cuDoubleComplex *zm
     alf_adv(zpNew, zpOld, zpNew, zmNew, zmOld, zmNew, dt);
 */
 /*
+RK2
+x(at k+1) = x(at k) + dt * f2
+f1 = f( x(at k), t(at k) )
+f2 = f( x(at k) + (dt/2) * f1, t(at k) +(dt/2) )
+
+RK4
 x(k+1) = x(k) + (dt/6)( 1*f1 + 2*f2 + 2*f3 + 1*f4)
 which is equivalent to
 x(k+1) = x(k) + (dt/6)*f1 + (dt/3)*f2 + (dt/3)*f3 + (dt/6)*4
@@ -89,6 +97,32 @@ f2 = f( xk + (dt/2*f1) , tk + dt/2 )
 f3 = f( xk + (dt/2*f2) , tk + dt/2 )
 f4 = f( xk + (dt*f3) , tk + dt )
 
+^ SOMEWHERE IN HERE IS THE PROBLEM, I CAN FEEL IT
+IF alf_adv REALLY IS JUST fn BY ITSELF, HOW WOULD I CHECK
+OR ARE THE alf_adv CALLS JUST f2, f3, f4, and x(k+1) = [...] ?
+
+IF xk + (dt/2*f1) IS EQUIVALENT TO
+alf_adv(zpNew, zpOld, zpOld, zmNew, zmOld, zmOld, dt/2.0);
+THEN THAT "dt/2 * f1" IS BAKED INTO alf_adv
+SO YOU NEED TO WORK AROUND THAT
+MAYBE CALL alf_adv ONE ADDITIONAL TIME BETWEEN 1st & 2nd CALLS
+1st IS TO PRODUCE 
+f1 = 0 + (dt/6)f1
+REQUIRED FOR OVERALL EQUATION
+2nd IS TO CREATE THE VALUE USED IN f2
+xk + (dt/2*f1)
+REQUIRED FOR f2 AND SUBSEQUENT EQUATIONS
+
+IF TRUE THEN THIS MAY REQUIRE SOME SHUFFLING BETWEEN end-1 & end-0 alf_adv CALLS
+BECAUSE, NOTE
+TAKING ADVANTAGE OF STRUCTURE OF alf_adv TO RE-USE IT
+f1 = f(xk, tk) IS ACTUALLY f1 = 0 + f(xk, tk)
+THIS MIGHT BE JUMPING AT NOTHING, THOUGH
+
+NO YEH IF IT HAPPENS TO ONE THEN IT HAPPENS TO THE OTHER
+I NEED TO MAKE A NEW TEMP VALUE TO HOLD THINGS
+
+for RK2
 xk + (dt/2*f1) already exists as
 alf_adv(zpNew, zpOld, zpOld, zmNew, zmOld, zmOld, dt/2.0);
 xk + dt*f2 already exists as
@@ -140,28 +174,38 @@ at this point "x(k-ish #4)" should be same value as "x(k+1)"
 i think that's all?
 */
     //calc 'f1' +store in tempZp/tempZm
-    alf_adv(tempZp, zpOld, zpOld, tempZm, zmOld, zmOld, dt);
+    alf_adv(tempZpOne, zpOld, zpOld, tempZmOne, zmOld, zmOld, dt);
     //x(k-ish #1) = x(k) + (dt/6)*f1
-    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/6);
-    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/6);
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZpOne, (double)1/6);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZmOne, (double)1/6);
+    
+    // NEWLY ADDED 20204/08/13
+    //calc 'f1' TO BE USED IN f2
+    alf_adv(tempZpOne, zpOld, zpOld, tempZmOne, zmOld, zmOld, dt/2);
+    //and do not add the results to zpNew/zmNew
 
     //calc 'f2' +store in tempZp/tempZm
-    alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZm, dt);
+    alf_adv(tempZpOne, zpOld, tempZpOne, tempZmOne, zmOld, tempZmOne, dt/2);
     //x(k-ish #2) = x(k-ish #1) + (dt/3)*f2
-    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/3);
-    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/3);
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZpOne, (double)1/3);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZmOne, (double)1/3);
+    
+    // NEWLY ADDED 20204/08/13
+    //calc 'f3' TO BE USED IN f4
+    alf_adv(tempZpTwo, zpOld, tempZpOne, tempZmTwo, zmOld, tempZmOne, dt);
+    //and do not add the results to zpNew/zmNew
 
     //calc 'f3' +store in tempZp/tempZm
-    alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZm, dt);
+    alf_adv(tempZpOne, zpOld, tempZpOne, tempZmOne, zmOld, tempZmOne, dt/2);
     //x(k-ish #3) = x(k-ish #2) + (dt/3)*f3
-    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/3);
-    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/3);
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZpOne, (double)1/3);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZmOne, (double)1/3);
 
     //calc 'f4' +store in tempZp/tempZm
-    alf_adv(tempZp, zpOld, tempZp, tempZm, zmOld, tempZp, dt);
+    alf_adv(tempZpOne, zpOld, tempZpTwo, tempZmOne, zmOld, tempZpTwo, dt);
     //x(k-ish #4) = x(k-ish #3) + (dt/6)*f4
-    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZp, (double)1/6);
-    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZm, (double)1/6);
+    addsubt <<<dG,dB>>> (zpNew, zpNew, tempZpOne, (double)1/6);
+    addsubt <<<dG,dB>>> (zmNew, zmNew, tempZmOne, (double)1/6);
 
     //at this point "x(k-ish #4)" should be same value as "x(k+1)"
     //  i.e. zpNew/zmNew should have the same value as it did before this change
@@ -177,5 +221,6 @@ i think that's all?
     CP_ON_GPU(zpOld, zpNew, Nkc);
     CP_ON_GPU(zmOld, zmNew, Nkc);
 }
+
 
 
