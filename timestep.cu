@@ -329,11 +329,11 @@ i think that's all?
     
     //calc 'f1' +store in tempZp/tempZm
     //    f1 = f(xk, tk)
-    //alf_adv(tempZpOne, zpOld, zpOld, tempZmOne, zmOld, zmOld, dt);
+    alf_adv(tempZpOne, zpOld, zpOld, tempZmOne, zmOld, zmOld, 0);
     //  nb 2024/08/20 - trying to understand the right-hand side of the equation
     //    
-    LINSTEP (tempZpOne, zpOld, dt);
-    LINSTEP (tempZmOne, zmOld, dt);
+    //LINSTEP (tempZpOne, zpOld, dt);
+    //LINSTEP (tempZmOne, zmOld, dt);
     //x(k-ish #1) = x(k) + (dt/6)*f1
     addsubt <<<dG,dB>>> (zpNew, zpNew, tempZpOne, (double)1.0/6.0);
     addsubt <<<dG,dB>>> (zmNew, zmNew, tempZmOne, (double)1.0/6.0);
@@ -342,18 +342,18 @@ i think that's all?
     //calc 'f1' TO BE USED IN f2
     //  uses old step's starting values to avoid 'contaminating' itself with results of (dt * f1)
     //    applies (dt/2 * f1) instead of (dt * f1)
-    alf_adv(tempZpOne, zpOld, zpOld, tempZmOne, zmOld, zmOld, dt/2.0);
+    //alf_adv(tempZpOne, zpOld, zpOld, tempZmOne, zmOld, zmOld, dt/2.0);
     //  and do not add the results to zpNew/zmNew
 
     //calc 'f2' +store in tempZp/tempZm
     //    f2 = f( xk + (dt/2*f1) , tk + dt/2 )
-    /*TRYING 2024/08/15
-      what if I shouldn't re-calc f1 with a "half-step"
-      but should pass (f1's result values) / 2 ?
-    scale <<<dG,dB>>> (tempZpTwo, tempZpOne, 0.5);
-    scale <<<dG,dB>>> (tempZmTwo, tempZmOne, 0.5);
-      Nope, no appreciable change. This is a record of one attempt.
-    */
+//    TRYING 2024/08/15
+//      what if I shouldn't re-calc f1 with a "half-step"
+//      but should pass (f1's result values) / 2 ?
+//    scale <<<dG,dB>>> (tempZpTwo, tempZpOne, 0.5);
+//    scale <<<dG,dB>>> (tempZmTwo, tempZmOne, 0.5);
+//      Nope, no appreciable change. This is a record of one attempt.
+
     alf_adv(tempZpOne, zpOld, tempZpOne, tempZmOne, zmOld, tempZmOne, dt/2.0);
     //x(k-ish #2) = x(k-ish #1) + (dt/3)*f2
     addsubt <<<dG,dB>>> (zpNew, zpNew, tempZpOne, (double)1.0/3.0);
@@ -379,6 +379,14 @@ i think that's all?
     //x(k-ish #4) = x(k-ish #3) + (dt/6)*f4
     addsubt <<<dG,dB>>> (zpNew, zpNew, tempZpOne, (double)1.0/6.0);
     addsubt <<<dG,dB>>> (zmNew, zmNew, tempZmOne, (double)1.0/6.0);
+    
+    // nb 2024/08/20 trying something, what if 
+    //x(k+1) = x(k) + (dt/6)( 1*f1 + 2*f2 + 2*f3 + 1*f4)
+    // is not distributable to
+    //x(k+1) = x(k) + (dt/6)*f1 + (dt/3)*f2 + (dt/3)*f3 + (dt/6)*4
+    //scale <<<dG,dB>>> (zpNew, zpNew, (double)1.0/6.0);
+    //scale <<<dG,dB>>> (zmNew, zmNew, (double)1.0/6.0);
+    // answer: nope, almost exactly alike, not the cause of "steps * 2 only causes linear error reduction" problem
 
     //at this point "x(k-ish #4)" should be same value as "x(k+1)"
     //  i.e. zpNew/zmNew should have the same value as it did before this change
