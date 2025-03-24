@@ -85,7 +85,7 @@ void advance(cuComplex *zpNew, cuComplex *zpOld, cuComplex *zmNew, cuComplex *zm
 
     // Full Alfven step
     alf_adv(zpNew, zpOld, zpNew, zmNew, zmOld, zmNew, dt,
-            Newa, zpOlda, zpOlda, zmNewa, zmOlda, zmOlda, dt);
+            zpNewa, zpOlda, zpOlda, zmNewa, zmOlda, zmOlda, dt);
 
     // Damping
     damp_hyper <<<dG,dB>>> (zpNew, nu_hyper, alpha_hyper, dt);
