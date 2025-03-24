@@ -24,7 +24,7 @@ void nonlin( cuComplex *zpOld, cuComplex *zmOld, cuComplex *bracket1, cuComplex 
 
     //6) bracket2 = {zp,zm}
     NLPS (bracket2, zpOld, zmOld,
-            bracket2a, zpOlda, zmOlda;
+            bracket2a, zpOlda, zmOlda);
 
     //7) bracket2 = -kPerp2*[{zp,zm}]
     multKPerp <<<dG,dB>>> (bracket2, bracket2, 1);
