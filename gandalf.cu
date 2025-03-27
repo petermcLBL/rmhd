@@ -13,9 +13,9 @@
 nbidler added 2024/06/28
 FFTX include statements
 */
-#include "fftx3.hpp"
-#include "interface.hpp"
-#include "transformlib.hpp"
+#include "fftx.hpp"
+#include "fftxinterface.hpp"
+#include "fftxtransformlib.hpp"
 //////////
 
 #define ERR(e) {printf("Error: %s\n", nc_strerror(e)); exit(2);};
@@ -290,7 +290,7 @@ int main(int argc, char* argv[]) {
         printf("Done.\n");
 
 
-        double elapsed_time;
+        float elapsed_time;
         cudaEventRecord(stop, 0);
         cudaEventSynchronize(stop);
         cudaEventElapsedTime(&elapsed_time, start, stop);

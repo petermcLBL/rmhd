@@ -19,12 +19,12 @@ __device__ int iget_idz(void) {return blockIdx.z*blockDim.z+threadIdx.z;}
 
 __host__ __device__ cuDoubleComplex operator+(cuDoubleComplex f, cuDoubleComplex g) 
 {
-    return cuCaddf(f,g);
+    return cuCadd(f,g);
 }
 
 __host__ __device__ cuDoubleComplex operator-(cuDoubleComplex f, cuDoubleComplex g)
 {
-    return cuCsubf(f,g);
+    return cuCsub(f,g);
 }
 
 __host__ __device__ cuDoubleComplex operator*(double scaler, cuDoubleComplex f) 
@@ -45,7 +45,7 @@ __host__ __device__ cuDoubleComplex operator*(cuDoubleComplex f, double scaler)
 
 __host__ __device__ cuDoubleComplex operator*(cuDoubleComplex f, cuDoubleComplex g)
 {
-    return cuCmulf(f,g);
+    return cuCmul(f,g);
 }
 
 __host__ __device__ cuDoubleComplex operator/(cuDoubleComplex f, double scaler)
@@ -58,7 +58,7 @@ __host__ __device__ cuDoubleComplex operator/(cuDoubleComplex f, double scaler)
 
 __host__ __device__ cuDoubleComplex operator/(cuDoubleComplex f, cuDoubleComplex g) 
 {
-    return cuCdivf(f,g);
+    return cuCdiv(f,g);
 }
 
 
@@ -67,7 +67,7 @@ __host__ __device__ cuDoubleComplex exp(cuDoubleComplex arg)
     cuDoubleComplex res;
     double s, c;
     double e = expf(arg.x);
-    sincosf(arg.y, &s, &c);
+    sincos(arg.y, &s, &c);
     res.x = c * e;
     res.y = s * e;
     return res;
